@@ -2,17 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import dbConnect from "@/lib/db";
 import { User } from "@/lib/models/User";
+import { registerSchema } from "@/lib/validations";
+import { validationErrorResponse, errorResponse, serverErrorResponse } from "@/lib/api-response";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { logger } from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
-  try {
-    const { username, email, password } = await req.json();
+  const rateLimit = checkRateLimit(req, "auth");
+  if (!rateLimit.allowed) {
+    return rateLimitResponse(rateLimit.resetIn);
+  }
 
-    if (!username || !email || !password) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      );
+  try {
+    const body = await req.json();
+    const parsed = registerSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return validationErrorResponse(parsed.error);
     }
+
+    const { username, email, password } = parsed.data;
 
     await dbConnect();
 
@@ -21,10 +30,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (existingUser) {
-      return NextResponse.json(
-        { error: "User already exists" },
-        { status: 400 }
-      );
+      return errorResponse("User already exists", 400);
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -35,16 +41,15 @@ export async function POST(req: NextRequest) {
       password: hashedPassword,
     });
 
+    logger.info("User registered", { userId: user._id.toString(), username });
+
     return NextResponse.json({
       id: user._id.toString(),
       username: user.username,
       email: user.email,
     });
   } catch (error) {
-    console.error("Registration error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    logger.error("Registration error", { error: String(error) });
+    return serverErrorResponse();
   }
 }
