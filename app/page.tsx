@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth, signOut } from "@/lib/auth";
-import ChatList from "@/components/ChatList";
-import ChatWindow from "@/components/ChatWindow";
+import ChatContainer from "@/components/ChatContainer";
 
 export default async function Home() {
   const session = await auth();
@@ -12,7 +11,7 @@ export default async function Home() {
 
   return (
     <div className="h-screen flex flex-col">
-      <header className="p-3 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center">
+      <header className="p-3 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center" role="banner">
         <span className="font-bold">Chat</span>
         <div className="flex items-center gap-3">
           <span className="text-sm text-gray-600">{session.user.name}</span>
@@ -22,14 +21,11 @@ export default async function Home() {
               await signOut({ redirectTo: "/login" });
             }}
           >
-            <button className="text-sm underline">Logout</button>
+            <button className="text-sm underline" aria-label="Sign out">Logout</button>
           </form>
         </div>
       </header>
-      <div className="flex-1 flex overflow-hidden">
-        <ChatList userId={session.user.id!} />
-        <ChatWindow userId={session.user.id!} />
-      </div>
+      <ChatContainer userId={session.user.id!} />
     </div>
   );
 }
