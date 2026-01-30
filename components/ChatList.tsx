@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useChatStore } from "@/lib/store";
 
 interface Chat {
@@ -22,7 +22,7 @@ export default function ChatList({ userId }: ChatListProps) {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
 
-  async function fetchChats() {
+  const fetchChats = useCallback(async () => {
     try {
       const res = await fetch("/api/chats");
       if (res.ok) {
@@ -31,13 +31,13 @@ export default function ChatList({ userId }: ChatListProps) {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     fetchChats();
     const interval = setInterval(fetchChats, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchChats]);
 
   async function handleNewChat(e: React.FormEvent) {
     e.preventDefault();
