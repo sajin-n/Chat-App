@@ -40,6 +40,7 @@ RUN pnpm install --frozen-lockfile --prod
 # Copy built app
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
+COPY --from=builder /app/next.config.* ./
 
 # Set ownership
 RUN chown -R nextjs:nodejs /app

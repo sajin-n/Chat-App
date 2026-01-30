@@ -30,7 +30,9 @@ export function checkRateLimit(
   req: NextRequest,
   type: "auth" | "message" | "default" = "default"
 ): { allowed: boolean; remaining: number; resetIn: number } {
-  const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
+  // Prefer x-real-ip (set by trusted reverse proxy) over x-forwarded-for (spoofable)
+  // In production, configure your reverse proxy to set x-real-ip from the true client IP
+  const ip = req.headers.get("x-real-ip") ?? req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
   const key = getKey(ip, type);
   const now = Date.now();
   const limit = MAX_REQUESTS[type];
