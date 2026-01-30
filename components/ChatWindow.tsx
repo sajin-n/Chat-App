@@ -29,35 +29,34 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
       return;
     }
 
-    async function fetchMessages() {
-      if (activeChatId === lastFetchRef.current && messages.length > 0) {
-        const res = await fetch(`/api/chats/${activeChatId}/messages?limit=50`);
-        if (res.ok) {
-          const data = await res.json();
-          if (JSON.stringify(data) !== JSON.stringify(messages)) {
-            setMessages(data);
-          }
-        }
-        return;
-      }
+    let isInitialFetch = activeChatId !== lastFetchRef.current;
 
-      setLoading(true);
+    async function fetchMessages() {
+      if (isInitialFetch) {
+        setLoading(true);
+      }
+      
       try {
         const res = await fetch(`/api/chats/${activeChatId}/messages?limit=50`);
         if (res.ok) {
           const data = await res.json();
           setMessages(data);
-          lastFetchRef.current = activeChatId;
+          if (isInitialFetch) {
+            lastFetchRef.current = activeChatId;
+            isInitialFetch = false;
+          }
         }
       } finally {
-        setLoading(false);
+        if (isInitialFetch) {
+          setLoading(false);
+        }
       }
     }
 
     fetchMessages();
     const interval = setInterval(fetchMessages, 2000);
     return () => clearInterval(interval);
-  }, [activeChatId, messages]);
+  }, [activeChatId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
