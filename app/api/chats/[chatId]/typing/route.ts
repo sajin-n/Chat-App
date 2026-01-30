@@ -67,7 +67,15 @@ export async function POST(
     }
 
     const { chatId } = await params;
-    const { isTyping } = await req.json();
+    const body = await req.json();
+    const { isTyping } = body ?? {};
+
+    if (typeof isTyping !== "boolean") {
+      return NextResponse.json(
+        { error: "Invalid isTyping value; expected boolean" },
+        { status: 400 }
+      );
+    }
 
     if (!typingStatus.has(chatId)) {
       typingStatus.set(chatId, new Map());

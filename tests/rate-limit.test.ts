@@ -1,11 +1,12 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { NextRequest } from "next/server";
 
 function createMockRequest(ip = "127.0.0.1"): NextRequest {
   return {
+    ip,
     headers: {
-      get: (name: string) => (name === "x-forwarded-for" ? ip : null),
+      get: (name: string) => (name === "x-real-ip" ? ip : null),
     },
   } as unknown as NextRequest;
 }
@@ -13,6 +14,10 @@ function createMockRequest(ip = "127.0.0.1"): NextRequest {
 describe("checkRateLimit", () => {
   beforeEach(() => {
     vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("allows first request", () => {

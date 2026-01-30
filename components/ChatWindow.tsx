@@ -86,6 +86,13 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
           sendTypingStatus(activeChatId, false);
         }
       }, 2000);
+    } else if (activeChatId) {
+      // Clear typing status when input is empty
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
+      sendTypingStatus(activeChatId, false);
     }
   }, [activeChatId, sendTypingStatus]);
 
@@ -143,6 +150,10 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
     return () => {
       clearInterval(messageInterval);
       clearInterval(typingInterval);
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
     };
   }, [activeChatId, fetchMessages]);
 
@@ -166,7 +177,7 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
     }
     sendTypingStatus(activeChatId, false);
 
-    const clientId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const clientId = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
     const optimisticMessage: Message = {
       _id: clientId,
       content: input.trim(),
