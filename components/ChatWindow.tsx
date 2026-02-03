@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback, memo } from "react";
 import Image from "next/image";
 import { CldUploadWidget, CloudinaryUploadWidgetResults } from "next-cloudinary";
 import { useChatStore } from "@/lib/store";
+import ReportModal from "@/components/ReportModal";
 
 type MessageStatus = "sending" | "sent" | "failed";
 
@@ -15,8 +16,12 @@ interface Message {
   createdAt: string;
   clientId?: string;
   status?: MessageStatus;
+  replyTo?: {
+    _id: string;
+    content: string;
+    senderId: { _id: string; username: string };
+  };
 }
-
 interface Chat {
   _id: string;
   participants: { _id: string; username: string }[];
@@ -31,25 +36,82 @@ const MessageBubble = memo(function MessageBubble({
   isOwn,
   onDelete,
   onRetry,
+  onReply,
 }: {
   msg: Message;
   isOwn: boolean;
   onDelete?: () => void;
   onRetry?: () => void;
+  onReply?: () => void;
 }) {
   const [showMenu, setShowMenu] = useState(false);
+  const [swipeX, setSwipeX] = useState(0);
+  const [isSwiping, setIsSwiping] = useState(false);
+  const touchStartX = useRef(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    setIsSwiping(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isSwiping) return;
+    const diff = e.touches[0].clientX - touchStartX.current;
+    // Only allow right swipe, max 80px
+    setSwipeX(Math.max(0, Math.min(diff, 80)));
+  };
+
+  const handleTouchEnd = () => {
+    if (swipeX > 50 && onReply) {
+      onReply();
+      // Haptic feedback if available
+      if (navigator.vibrate) navigator.vibrate(10);
+    }
+    setSwipeX(0);
+    setIsSwiping(false);
+  };
 
   return (
     <div
       className={`group flex ${isOwn ? "justify-end" : "justify-start"}`}
       onMouseLeave={() => setShowMenu(false)}
     >
+      {/* Swipe reply indicator */}
+      {swipeX > 0 && (
+        <div
+          className="flex items-center justify-center w-10 transition-opacity"
+          style={{ opacity: swipeX / 80 }}
+        >
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${swipeX > 50 ? 'bg-blue-500 text-white' : 'bg-zinc-200 dark:bg-zinc-700'}`}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="9 14 4 9 9 4" />
+              <path d="M20 20v-7a4 4 0 0 0-4-4H4" />
+            </svg>
+          </div>
+        </div>
+      )}
       <div
-        className={`relative p-3 max-w-[70%] rounded-2xl ${isOwn
+        className={`relative p-3 max-w-[70%] rounded-2xl transition-transform ${isOwn
           ? "bg-[var(--accent)] text-[var(--accent-foreground)] rounded-br-md"
           : "bg-[var(--border)] rounded-bl-md"
           }`}
+        style={{ transform: `translateX(${swipeX}px)` }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
+        {/* Reply preview if message is a reply */}
+        {msg.replyTo && (
+          <div className={`mb-2 p-2 rounded-lg text-xs border-l-2 ${isOwn
+            ? 'bg-white/10 border-white/40'
+            : 'bg-black/5 dark:bg-white/5 border-zinc-400'}`}>
+            <p className="font-medium opacity-70 mb-0.5">
+              {msg.replyTo.senderId?.username || 'Unknown'}
+            </p>
+            <p className="opacity-60 line-clamp-2">{msg.replyTo.content}</p>
+          </div>
+        )}
+
         {msg.imageUrl && (
           <Image
             src={msg.imageUrl}
@@ -64,8 +126,7 @@ const MessageBubble = memo(function MessageBubble({
         )}
 
         {isOwn && msg.status && (
-          <p className={`text-xs mt-1 text-right ${isOwn ? "opacity-70" : "text-[var(--muted)]"
-            }`}>
+          <p className={`text-xs mt-1 text-right ${isOwn ? "opacity-70" : "text-[var(--muted)]"}`}>
             {msg.status === "sending" && "Sending..."}
             {msg.status === "sent" && "✓"}
             {msg.status === "failed" && (
@@ -76,13 +137,14 @@ const MessageBubble = memo(function MessageBubble({
           </p>
         )}
 
-        {isOwn && !msg.status && onDelete && (
+        {/* 3-dot menu button - show for all messages (not just own) */}
+        {!msg.status && (
           <button
             onClick={(e) => {
               e.stopPropagation();
               setShowMenu(!showMenu);
             }}
-            className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-all duration-150 w-6 h-6 flex items-center justify-center rounded-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-md text-xs hover:scale-110"
+            className={`absolute -top-2 ${isOwn ? '-right-2' : '-left-2'} opacity-0 group-hover:opacity-100 transition-all duration-150 w-6 h-6 flex items-center justify-center rounded-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-md text-xs hover:scale-110`}
             aria-label="Message options"
           >
             ⋮
@@ -90,22 +152,34 @@ const MessageBubble = memo(function MessageBubble({
         )}
 
         {showMenu && (
-          <div className="absolute -top-1 right-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-xl z-10 rounded-xl overflow-hidden animate-[scaleIn_0.15s_ease-out]">
+          <div className={`absolute -top-1 ${isOwn ? 'right-6' : 'left-6'} bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-xl z-10 rounded-xl overflow-hidden animate-[scaleIn_0.15s_ease-out]`}>
             <button
               onClick={() => {
-                onDelete?.();
+                onReply?.();
                 setShowMenu(false);
               }}
-              className="block w-full px-4 py-2.5 text-left text-sm text-red-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+              className="block w-full px-4 py-2.5 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
             >
-              Delete
+              Reply
             </button>
+            {isOwn && onDelete && (
+              <button
+                onClick={() => {
+                  onDelete();
+                  setShowMenu(false);
+                }}
+                className="block w-full px-4 py-2.5 text-left text-sm text-red-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+              >
+                Delete
+              </button>
+            )}
           </div>
         )}
       </div>
     </div>
   );
 });
+
 
 export default function ChatWindow({ userId }: ChatWindowProps) {
   const { activeChatId, setActiveChatId, setMobileMenuOpen } = useChatStore();
@@ -117,6 +191,8 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
   const [sending, setSending] = useState(false);
   const [othersTyping, setOthersTyping] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const lastFetchRef = useRef<string | null>(null);
@@ -326,11 +402,17 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
       createdAt: new Date().toISOString(),
       clientId,
       status: "sending",
+      replyTo: replyingTo ? {
+        _id: replyingTo._id,
+        content: replyingTo.content,
+        senderId: replyingTo.senderId,
+      } : undefined,
     };
 
     setMessages((prev) => [...prev, optimisticMessage]);
     setInput("");
     setMessageImage(null);
+    setReplyingTo(null);
     setSending(true);
 
     try {
@@ -342,6 +424,7 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
           imageUrl: messageImage?.url,
           imagePublicId: messageImage?.publicId,
           clientId,
+          replyToId: optimisticMessage.replyTo?._id,
         }),
       });
 
@@ -421,7 +504,7 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
   const otherUser = getOtherParticipant();
 
   return (
-    <div className="flex-1 flex flex-col h-full">
+    <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden">
       {/* Header */}
       <div className="px-4 py-3.5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm shadow-sm">
         <div className="flex items-center gap-3">
@@ -465,7 +548,7 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
       <div
         ref={messagesContainerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto p-4 space-y-3"
+        className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0"
       >
         {loading && messages.length === 0 && (
           <div className="space-y-4">
@@ -506,6 +589,10 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
               isOwn={isOwn}
               onDelete={isOwn && !msg.status ? () => handleDeleteMessage(msg._id) : undefined}
               onRetry={msg.status === "failed" ? () => retryMessage(msg) : undefined}
+              onReply={() => {
+                setReplyingTo(msg);
+                inputRef.current?.focus();
+              }}
             />
           );
         })}
@@ -517,10 +604,32 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Reply Preview Bar */}
+      {replyingTo && (
+        <div className="shrink-0 px-4 py-2 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 flex items-center gap-3">
+          <div className="w-1 h-10 bg-blue-500 rounded-full" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-blue-600 dark:text-blue-400">
+              Replying to {replyingTo.senderId.username}
+            </p>
+            <p className="text-sm text-zinc-600 dark:text-zinc-400 truncate">
+              {replyingTo.content}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setReplyingTo(null)}
+            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors text-zinc-500"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Input */}
       <form
         onSubmit={handleSend}
-        className="px-4 py-4 border-t border-zinc-200 dark:border-zinc-800 space-y-3 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm"
+        className="shrink-0 px-4 py-4 border-t border-zinc-200 dark:border-zinc-800 space-y-3 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm"
       >
         {messageImage && (
           <div className="relative max-w-[100px]">
@@ -628,6 +737,21 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
                 </div>
                 Delete Chat
               </button>
+              <button
+                onClick={() => {
+                  setShowMenu(false);
+                  setShowReportModal(true);
+                }}
+                className="w-full px-3 py-2.5 text-left hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors flex items-center gap-3 text-sm text-red-600 dark:text-red-400 font-medium"
+              >
+                <div className="w-7 h-7 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                    <line x1="4" y1="22" x2="4" y2="15" />
+                  </svg>
+                </div>
+                Report User
+              </button>
             </div>
             <div className="p-1 border-t border-zinc-100 dark:border-zinc-800">
               <button
@@ -642,6 +766,13 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
           <div className="absolute inset-0 z-[-1]" onClick={() => setShowMenu(false)} />
         </div>
       )}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        reportedType="user"
+        reportedId={otherUser?._id || ""}
+        reportedName={otherUser?.username}
+      />
     </div>
   );
 }

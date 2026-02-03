@@ -35,6 +35,7 @@ export const sendMessageSchema = z.object({
   imageUrl: z.string().optional(),
   imagePublicId: z.string().optional(),
   clientId: z.string().optional(),
+  replyToId: z.string().optional(),
 });
 
 export const paginationSchema = z.object({

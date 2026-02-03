@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import { CldUploadWidget } from "next-cloudinary";
 import { BlogPostSkeleton } from "@/components/Skeleton";
+import ReportModal from "@/components/ReportModal";
 import { useChatStore } from "@/lib/store";
 
 interface Blog {
@@ -50,6 +51,16 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
   const [editingCommentContent, setEditingCommentContent] = useState<string>("");
   const [savingCommentEdit, setSavingCommentEdit] = useState<string | null>(null);
   const [openCommentMenus, setOpenCommentMenus] = useState<Record<string, boolean>>({});
+  const [reportData, setReportData] = useState<{
+    isOpen: boolean;
+    type: "user" | "post" | "comment";
+    id: string;
+    name?: string;
+  }>({
+    isOpen: false,
+    type: "post",
+    id: "",
+  });
   const blogRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Get current user info
@@ -635,63 +646,110 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
                           </p>
                         </div>
                       </div>
-                      {isAuthor && (
-                        <div className="relative menu-container">
-                          <button
-                            onClick={(e) => toggleMenu(blog._id, e)}
-                            className="icon-button p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-all duration-200"
-                            title="Post options"
-                          >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-zinc-400 dark:text-zinc-500">
-                              <circle cx="12" cy="5" r="2" />
-                              <circle cx="12" cy="12" r="2" />
-                              <circle cx="12" cy="19" r="2" />
-                            </svg>
-                          </button>
-                          {openMenus[blog._id] && (
-                            <>
-                              <div className="fixed inset-0 z-40" onClick={() => setOpenMenus({})}></div>
-                              <div className="menu-dropdown absolute right-0 top-full mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xl py-1 z-50 min-w-[140px] animate-slide-down overflow-hidden">
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    setOpenMenus({});
-                                    handleEditBlog(blog._id, blog.content);
-                                  }}
-                                  className="w-full px-4 py-2.5 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors duration-150 flex items-center gap-2 font-medium"
-                                >
-                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                  </svg>
-                                  Edit
-                                </button>
-                                <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1"></div>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    setOpenMenus({});
-                                    handleDeleteBlog(blog._id);
-                                  }}
-                                  className="w-full px-4 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors duration-150 flex items-center gap-2 font-medium"
-                                >
-                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <polyline points="3 6 5 6 21 6" />
-                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                    <line x1="10" y1="11" x2="10" y2="17" />
-                                    <line x1="14" y1="11" x2="14" y2="17" />
-                                  </svg>
-                                  Delete
-                                </button>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      )}
+                      <div className="relative menu-container">
+                        <button
+                          onClick={(e) => toggleMenu(blog._id, e)}
+                          className="icon-button p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-all duration-200"
+                          title="Options"
+                        >
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-zinc-400 dark:text-zinc-500">
+                            <circle cx="12" cy="5" r="2" />
+                            <circle cx="12" cy="12" r="2" />
+                            <circle cx="12" cy="19" r="2" />
+                          </svg>
+                        </button>
+                        {openMenus[blog._id] && (
+                          <>
+                            <div className="fixed inset-0 z-40" onClick={() => setOpenMenus({})}></div>
+                            <div className="menu-dropdown absolute right-0 top-full mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xl py-1 z-50 min-w-[140px] animate-slide-down overflow-hidden">
+                              {isAuthor ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      setOpenMenus({});
+                                      handleEditBlog(blog._id, blog.content);
+                                    }}
+                                    className="w-full px-4 py-2.5 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors duration-150 flex items-center gap-2 font-medium"
+                                  >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                    </svg>
+                                    Edit
+                                  </button>
+                                  <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1"></div>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      setOpenMenus({});
+                                      handleDeleteBlog(blog._id);
+                                    }}
+                                    className="w-full px-4 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors duration-150 flex items-center gap-2 font-medium"
+                                  >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <polyline points="3 6 5 6 21 6" />
+                                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                      <line x1="10" y1="11" x2="10" y2="17" />
+                                      <line x1="14" y1="11" x2="14" y2="17" />
+                                    </svg>
+                                    Delete
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      setOpenMenus({});
+                                      setReportData({
+                                        isOpen: true,
+                                        type: "post",
+                                        id: blog._id,
+                                        name: blog.content?.slice(0, 30) + (blog.content?.length > 30 ? "..." : "")
+                                      });
+                                    }}
+                                    className="w-full px-4 py-2.5 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors duration-150 flex items-center gap-2 font-medium"
+                                  >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                                      <line x1="4" y1="22" x2="4" y2="15" />
+                                    </svg>
+                                    Report Post
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      setOpenMenus({});
+                                      setReportData({
+                                        isOpen: true,
+                                        type: "user",
+                                        id: (blog.authorId._id?.toString?.() ?? blog.authorId._id) as string,
+                                        name: blog.authorId.username
+                                      });
+                                    }}
+                                    className="w-full px-4 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors duration-150 flex items-center gap-2 font-medium"
+                                  >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                      <circle cx="12" cy="7" r="4" />
+                                    </svg>
+                                    Report User
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
 
                     {/* Content */}
@@ -822,13 +880,12 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
                                   {(() => {
                                     const commentAuthorId = comment.authorId._id?.toString?.() ?? comment.authorId._id;
                                     const isCommentAuthor = commentAuthorId === userId || (currentUser?._id && commentAuthorId === currentUser._id.toString?.());
-                                    const canModifyComment = isCommentAuthor || isAuthor;
-                                    return canModifyComment && (
+                                    return (
                                       <div className="relative">
                                         <button
                                           onClick={(e) => toggleCommentMenu(comment._id, e)}
                                           className="icon-button opacity-0 group-hover:opacity-100 p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-all"
-                                          title="Comment options"
+                                          title="Options"
                                         >
                                           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-zinc-400">
                                             <circle cx="12" cy="5" r="2" />
@@ -850,19 +907,60 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
                                                 Edit
                                               </button>
                                             )}
-                                            <button
-                                              onClick={() => {
-                                                setOpenCommentMenus({});
-                                                handleDeleteComment(blog._id, comment._id);
-                                              }}
-                                              className="w-full px-3 py-2 text-left text-xs hover:bg-red-50 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400 transition-colors font-medium flex items-center gap-2"
-                                            >
-                                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <polyline points="3 6 5 6 21 6" />
-                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                              </svg>
-                                              Delete
-                                            </button>
+                                            {(isCommentAuthor || isAuthor) ? (
+                                              <button
+                                                onClick={() => {
+                                                  setOpenCommentMenus({});
+                                                  handleDeleteComment(blog._id, comment._id);
+                                                }}
+                                                className="w-full px-3 py-2 text-left text-xs hover:bg-red-50 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400 transition-colors font-medium flex items-center gap-2"
+                                              >
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                  <polyline points="3 6 5 6 21 6" />
+                                                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                                </svg>
+                                                Delete
+                                              </button>
+                                            ) : (
+                                              <>
+                                                <button
+                                                  onClick={() => {
+                                                    setOpenCommentMenus({});
+                                                    setReportData({
+                                                      isOpen: true,
+                                                      type: "comment",
+                                                      id: comment._id,
+                                                      name: comment.content?.slice(0, 30) + (comment.content?.length > 30 ? "..." : "")
+                                                    });
+                                                  }}
+                                                  className="w-full px-3 py-2 text-left text-xs hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors font-medium flex items-center gap-2"
+                                                >
+                                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                                                    <line x1="4" y1="22" x2="4" y2="15" />
+                                                  </svg>
+                                                  Report Comment
+                                                </button>
+                                                <button
+                                                  onClick={() => {
+                                                    setOpenCommentMenus({});
+                                                    setReportData({
+                                                      isOpen: true,
+                                                      type: "user",
+                                                      id: (comment.authorId._id?.toString?.() ?? comment.authorId._id) as string,
+                                                      name: comment.authorId.username
+                                                    });
+                                                  }}
+                                                  className="w-full px-3 py-2 text-left text-xs hover:bg-red-50 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400 transition-colors font-medium flex items-center gap-2"
+                                                >
+                                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                                    <circle cx="12" cy="7" r="4" />
+                                                  </svg>
+                                                  Report User
+                                                </button>
+                                              </>
+                                            )}
                                           </div>
                                         )}
                                       </div>
@@ -947,6 +1045,13 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
           </div>
         </div>
       </div>
+      <ReportModal
+        isOpen={reportData.isOpen}
+        onClose={() => setReportData({ ...reportData, isOpen: false })}
+        reportedType={reportData.type}
+        reportedId={reportData.id}
+        reportedName={reportData.name}
+      />
     </div>
   );
 }

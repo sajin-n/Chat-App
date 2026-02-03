@@ -15,7 +15,7 @@ export default async function Home() {
   }
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-full flex flex-col overflow-hidden">
       <ChatContainer userId={session.user.id!} />
     </div>
   );
