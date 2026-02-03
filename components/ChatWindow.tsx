@@ -45,11 +45,10 @@ const MessageBubble = memo(function MessageBubble({
       onMouseLeave={() => setShowMenu(false)}
     >
       <div
-        className={`relative p-3 max-w-[70%] rounded-2xl ${
-          isOwn
-            ? "bg-[var(--accent)] text-[var(--accent-foreground)] rounded-br-md"
-            : "bg-[var(--border)] rounded-bl-md"
-        }`}
+        className={`relative p-3 max-w-[70%] rounded-2xl ${isOwn
+          ? "bg-[var(--accent)] text-[var(--accent-foreground)] rounded-br-md"
+          : "bg-[var(--border)] rounded-bl-md"
+          }`}
       >
         {msg.imageUrl && (
           <Image
@@ -63,11 +62,10 @@ const MessageBubble = memo(function MessageBubble({
         {msg.content && (
           <p className="break-words text-sm leading-relaxed">{msg.content}</p>
         )}
-        
+
         {isOwn && msg.status && (
-          <p className={`text-xs mt-1 text-right ${
-            isOwn ? "opacity-70" : "text-[var(--muted)]"
-          }`}>
+          <p className={`text-xs mt-1 text-right ${isOwn ? "opacity-70" : "text-[var(--muted)]"
+            }`}>
             {msg.status === "sending" && "Sending..."}
             {msg.status === "sent" && "✓"}
             {msg.status === "failed" && (
@@ -84,7 +82,7 @@ const MessageBubble = memo(function MessageBubble({
               e.stopPropagation();
               setShowMenu(!showMenu);
             }}
-            className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 flex items-center justify-center rounded-full bg-[var(--background)] border border-[var(--border)] shadow-sm text-xs hover:bg-[var(--border)]"
+            className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-all duration-150 w-6 h-6 flex items-center justify-center rounded-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-md text-xs hover:scale-110"
             aria-label="Message options"
           >
             ⋮
@@ -92,13 +90,13 @@ const MessageBubble = memo(function MessageBubble({
         )}
 
         {showMenu && (
-          <div className="absolute -top-1 right-6 bg-[var(--background)] border border-[var(--border)] shadow-lg z-10 rounded-lg overflow-hidden">
+          <div className="absolute -top-1 right-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-xl z-10 rounded-xl overflow-hidden animate-[scaleIn_0.15s_ease-out]">
             <button
               onClick={() => {
                 onDelete?.();
                 setShowMenu(false);
               }}
-              className="block w-full px-4 py-2 text-left text-sm text-[var(--danger)] hover:bg-[var(--border)]"
+              className="block w-full px-4 py-2.5 text-left text-sm text-red-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
             >
               Delete
             </button>
@@ -120,9 +118,11 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
   const [othersTyping, setOthersTyping] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const lastFetchRef = useRef<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
 
   const getOtherParticipant = useCallback(() => {
     return chat?.participants.find((p) => p._id !== userId);
@@ -153,14 +153,14 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value);
-    
+
     if (activeChatId && e.target.value.trim()) {
       sendTypingStatus(activeChatId, true);
-      
+
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
-      
+
       typingTimeoutRef.current = setTimeout(() => {
         if (activeChatId) {
           sendTypingStatus(activeChatId, false);
@@ -178,7 +178,7 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
 
   const fetchMessages = useCallback(async (chatId: string, isInitial: boolean) => {
     if (isInitial) setLoading(true);
-    
+
     try {
       const res = await fetch(`/api/chats/${chatId}/messages?limit=50`);
       if (res.ok) {
@@ -209,7 +209,7 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
     const isInitial = activeChatId !== lastFetchRef.current;
     fetchMessages(activeChatId, isInitial);
     fetchChat(activeChatId);
-    
+
     const messageInterval = setInterval(() => {
       fetchMessages(activeChatId, false);
     }, 2000);
@@ -228,7 +228,7 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
 
     fetchTypingStatus();
     const typingInterval = setInterval(fetchTypingStatus, 1500);
-    
+
     return () => {
       clearInterval(messageInterval);
       clearInterval(typingInterval);
@@ -239,9 +239,21 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
     };
   }, [activeChatId, fetchMessages, fetchChat]);
 
+  // Handle scroll to detect if user is at bottom
+  const handleScroll = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (container) {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      setIsAtBottom(scrollHeight - scrollTop - clientHeight < 50);
+    }
+  }, []);
+
+  // Only auto-scroll if user is at bottom
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (isAtBottom) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, isAtBottom]);
 
   useEffect(() => {
     if (activeChatId) {
@@ -411,37 +423,53 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
   return (
     <div className="flex-1 flex flex-col h-full">
       {/* Header */}
-      <div className="p-3 border-b border-[var(--border)] flex items-center justify-between">
+      <div className="px-4 py-3.5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm shadow-sm">
         <div className="flex items-center gap-3">
           <button
             onClick={() => setMobileMenuOpen(true)}
-            className="btn btn-icon btn-ghost desktop-hidden"
+            className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors desktop-hidden"
             aria-label="Open menu"
           >
-            ☰
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
           </button>
-          <h2 className="font-semibold">{otherUser?.username || "Loading..."}</h2>
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-zinc-200 to-zinc-300 dark:from-zinc-700 dark:to-zinc-600 flex items-center justify-center text-sm font-semibold text-zinc-600 dark:text-zinc-300">
+            {otherUser?.username?.[0]?.toUpperCase() || "?"}
+          </div>
+          <div>
+            <h2 className="font-semibold text-zinc-900 dark:text-zinc-100">{otherUser?.username || "Loading..."}</h2>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">Online</p>
+          </div>
         </div>
         <div className="relative">
           <button
             onClick={() => setShowMenu(!showMenu)}
-            className="btn btn-icon btn-ghost"
+            className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
             aria-label="Chat options"
           >
-            ⋮
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="12" cy="5" r="2" />
+              <circle cx="12" cy="12" r="2" />
+              <circle cx="12" cy="19" r="2" />
+            </svg>
           </button>
           {showMenu && (
-            <div className="absolute right-0 top-full mt-1 bg-[var(--background)] border border-[var(--border)] shadow-lg z-10 min-w-[140px]">
+            <div className="absolute right-0 top-full mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-xl z-50 min-w-[160px] rounded-xl overflow-hidden animate-[scaleIn_0.15s_ease-out]">
               <button
                 onClick={handleClearChat}
-                className="block w-full px-4 py-2 text-left text-sm hover:bg-[var(--border)]"
+                className="w-full px-4 py-2.5 text-left text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
               >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6" /></svg>
                 Clear Chat
               </button>
               <button
                 onClick={handleDeleteChat}
-                className="block w-full px-4 py-2 text-left text-sm text-[var(--danger)] hover:bg-[var(--border)]"
+                className="w-full px-4 py-2.5 text-left text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors flex items-center gap-2"
               >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" /></svg>
                 Delete Chat
               </button>
             </div>
@@ -450,7 +478,11 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div
+        ref={messagesContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto p-4 space-y-3"
+      >
         {loading && messages.length === 0 && (
           <div className="space-y-4">
             {/* Received message skeleton */}
@@ -504,7 +536,7 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
       {/* Input */}
       <form
         onSubmit={handleSend}
-        className="p-3 border-t border-[var(--border)] space-y-2"
+        className="px-4 py-4 border-t border-zinc-200 dark:border-zinc-800 space-y-3 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm"
       >
         {messageImage && (
           <div className="relative max-w-[100px]">
@@ -513,18 +545,18 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
               alt="Attached"
               width={100}
               height={100}
-              className="w-full rounded-lg"
+              className="w-full rounded-xl shadow-sm"
             />
             <button
               type="button"
               onClick={() => setMessageImage(null)}
-              className="absolute -top-2 -right-2 bg-[var(--danger)] text-white p-1 rounded-full text-xs hover:bg-red-700"
+              className="absolute -top-2 -right-2 bg-red-500 text-white w-6 h-6 rounded-full text-sm hover:bg-red-600 shadow-md flex items-center justify-center"
             >
               ×
             </button>
           </div>
         )}
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           {process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME && (
             <CldUploadWidget
               uploadPreset="giga_chat"
@@ -541,9 +573,13 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
                 <button
                   type="button"
                   onClick={() => open()}
-                  className="px-3 py-2 bg-[var(--border)] hover:bg-[var(--border)]/80 rounded-lg text-sm transition-colors"
+                  className="w-11 h-11 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-xl transition-colors"
                 >
-                  +
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <polyline points="21 15 16 10 5 21" />
+                  </svg>
                 </button>
               )}
             </CldUploadWidget>
@@ -554,15 +590,27 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
             value={input}
             onChange={handleInputChange}
             placeholder="Type a message..."
-            className="input flex-1"
+            className="flex-1 px-4 py-3 bg-zinc-100 dark:bg-zinc-800 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-300 dark:focus:ring-zinc-600 transition-all text-sm placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
             disabled={sending}
           />
           <button
             type="submit"
             disabled={sending || (!input.trim() && !messageImage)}
-            className="btn btn-primary"
+            className="px-6 py-3 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-medium rounded-xl hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
           >
-            {sending ? "..." : "Send"}
+            {sending ? (
+              <span className="flex items-center gap-2">
+                <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              </span>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13" />
+                <polygon points="22 2 15 22 11 13 2 9 22 2" />
+              </svg>
+            )}
           </button>
         </div>
       </form>

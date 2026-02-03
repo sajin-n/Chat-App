@@ -42,11 +42,23 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        throw new Error("Invalid credentials");
+        // Better error message
+        if (result.error === "CredentialsSignin") {
+          throw new Error("Invalid email or password");
+        }
+        throw new Error(result.error);
       }
 
-      // Redirect on success
-      window.location.href = "/";
+      if (!result?.ok) {
+        throw new Error("Login failed. Please try again.");
+      }
+
+      // Redirect on success - developer goes to dashboard, others to home
+      if (email.toLowerCase() === "dev@chatapp.com") {
+        window.location.href = "/dashboard";
+      } else {
+        window.location.href = "/";
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setLoading(false);

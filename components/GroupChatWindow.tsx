@@ -43,11 +43,10 @@ const MessageBubble = memo(function MessageBubble({
       onMouseLeave={() => setShowMenu(false)}
     >
       <div
-        className={`relative px-3.5 py-2.5 max-w-[75%] rounded-xl transition-all duration-200 ${
-          isOwn
+        className={`relative px-3.5 py-2.5 max-w-[75%] rounded-xl transition-all duration-200 ${isOwn
             ? "bg-[var(--foreground)] text-[var(--background)] rounded-br-sm"
             : "bg-[var(--foreground)]/[0.06] border border-[var(--border)]/40 rounded-bl-sm"
-        }`}
+          }`}
       >
         {!isOwn && (
           <p className="text-[10px] font-medium text-[var(--foreground)]/50 mb-1.5 tracking-wide uppercase">
@@ -55,11 +54,10 @@ const MessageBubble = memo(function MessageBubble({
           </p>
         )}
         <p className="break-words text-[13px] leading-relaxed">{msg.content}</p>
-        
+
         {isOwn && msg.status && (
-          <p className={`text-[10px] mt-1.5 text-right tracking-wide ${
-            isOwn ? "opacity-60" : "text-[var(--muted)]"
-          }`}>
+          <p className={`text-[10px] mt-1.5 text-right tracking-wide ${isOwn ? "opacity-60" : "text-[var(--muted)]"
+            }`}>
             {msg.status === "sending" && "···"}
             {msg.status === "sent" && "✓"}
             {msg.status === "failed" && "✗"}
@@ -110,8 +108,10 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
   const [addError, setAddError] = useState("");
   const [updateError, setUpdateError] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const lastFetchRef = useRef<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
 
   const isAdmin = group?.admins.some((a) => a._id === userId) ?? false;
   const isCreator = group?.createdBy._id === userId;
@@ -131,7 +131,7 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
 
   const fetchMessages = useCallback(async (groupId: string, isInitial: boolean) => {
     if (isInitial) setLoading(true);
-    
+
     try {
       const res = await fetch(`/api/groups/${groupId}/messages?limit=50`);
       if (res.ok) {
@@ -160,17 +160,29 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
     const isInitial = activeGroupId !== lastFetchRef.current;
     fetchMessages(activeGroupId, isInitial);
     fetchGroup(activeGroupId);
-    
+
     const interval = setInterval(() => {
       fetchMessages(activeGroupId, false);
     }, 2000);
-    
+
     return () => clearInterval(interval);
   }, [activeGroupId, fetchMessages, fetchGroup]);
 
+  // Handle scroll to detect if user is at bottom
+  const handleScroll = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (container) {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      setIsAtBottom(scrollHeight - scrollTop - clientHeight < 50);
+    }
+  }, []);
+
+  // Only auto-scroll if user is at bottom
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (isAtBottom) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, isAtBottom]);
 
   useEffect(() => {
     if (activeGroupId) {
@@ -245,7 +257,7 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
 
   const handleUpdateGroup = useCallback(async () => {
     if (!activeGroupId || !editName.trim()) return;
-    
+
     setUpdateError("");
 
     try {
@@ -268,7 +280,7 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
 
   const handleAddMember = useCallback(async () => {
     if (!activeGroupId || !addUsername.trim()) return;
-    
+
     setAddError("");
 
     try {
@@ -361,18 +373,18 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
 
       {/* Settings Modal */}
       {showSettings && group && (
-        <div 
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-[fadeIn_0.15s_ease-out]" 
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-[fadeIn_0.15s_ease-out]"
           onClick={() => setShowSettings(false)}
         >
-          <div 
+          <div
             className="bg-[var(--background)] border border-[var(--border)]/60 rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] overflow-hidden animate-[scaleIn_0.2s_ease-out]"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]/40">
               <h3 className="font-semibold text-sm">Group Settings</h3>
-              <button 
+              <button
                 onClick={() => setShowSettings(false)}
                 className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[var(--foreground)]/[0.06] transition-colors duration-150 text-lg"
               >
@@ -397,8 +409,8 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
                         placeholder="Group name"
                         className="flex-1 px-3 py-2 text-sm bg-[var(--background)] border border-[var(--border)]/60 rounded-lg focus:outline-none focus:border-[var(--border)] transition-colors duration-150"
                       />
-                      <button 
-                        onClick={handleUpdateGroup} 
+                      <button
+                        onClick={handleUpdateGroup}
                         className="px-4 py-2 bg-[var(--foreground)] text-[var(--background)] text-sm font-medium rounded-lg hover:opacity-90 transition-opacity duration-150"
                       >
                         Save
@@ -434,8 +446,8 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
                           }
                         }}
                       />
-                      <button 
-                        onClick={handleAddMember} 
+                      <button
+                        onClick={handleAddMember}
                         className="px-4 py-2 bg-[var(--foreground)] text-[var(--background)] text-sm font-medium rounded-lg hover:opacity-90 transition-opacity duration-150"
                       >
                         Add
@@ -457,8 +469,8 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
                 </label>
                 <div className="space-y-0.5 bg-[var(--foreground)]/[0.02] border border-[var(--border)]/30 rounded-xl p-2">
                   {group.participants.map((p) => (
-                    <div 
-                      key={p._id} 
+                    <div
+                      key={p._id}
                       className="flex items-center justify-between py-2 px-2.5 rounded-lg hover:bg-[var(--foreground)]/[0.04] transition-colors duration-150"
                     >
                       <span className="text-[13px]">
@@ -484,8 +496,8 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
               </div>
 
               {isCreator && (
-                <button 
-                  onClick={handleDeleteGroup} 
+                <button
+                  onClick={handleDeleteGroup}
                   className="w-full px-4 py-2.5 bg-[var(--danger)]/10 text-[var(--danger)] text-sm font-medium rounded-lg hover:bg-[var(--danger)]/20 transition-colors duration-150 border border-[var(--danger)]/20"
                 >
                   Delete Group
@@ -497,7 +509,11 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
+      <div
+        ref={messagesContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto px-4 py-4 space-y-2"
+      >
         {loading && messages.length === 0 && (
           <div className="space-y-3">
             {/* Received message skeleton */}
