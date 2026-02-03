@@ -481,15 +481,16 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
       `}</style>
 
       {/* Create Post - Sticky Header */}
-      <div className="sticky top-0 z-10 border-b border-zinc-200 dark:border-zinc-800 glass-effect shadow-sm">
+      <div className="sticky top-0 z-10 border-b border-zinc-200/50 dark:border-zinc-800/50 bg-gradient-to-b from-white via-white to-zinc-50/90 dark:from-zinc-900 dark:via-zinc-900 dark:to-zinc-950/90 backdrop-blur-xl shadow-lg">
         <div className="max-w-2xl mx-auto w-full p-4">
           <form onSubmit={handlePostBlog} className="space-y-3">
-            <div className="relative">
+            <div className="relative group">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-zinc-300 via-zinc-200 to-zinc-300 dark:from-zinc-600 dark:via-zinc-500 dark:to-zinc-600 rounded-2xl blur opacity-0 group-focus-within:opacity-60 transition duration-500"></div>
               <textarea
                 value={newBlogContent}
                 onChange={(e) => setNewBlogContent(e.target.value)}
                 placeholder="Share your thoughts..."
-                className="w-full p-4 border border-zinc-200 dark:border-zinc-800 rounded-2xl bg-white dark:bg-zinc-900 text-[var(--foreground)] resize-none focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-600 shadow-sm hover:shadow-md"
+                className="relative w-full p-4 border-0 rounded-2xl bg-gradient-to-br from-zinc-50 to-white dark:from-zinc-800 dark:to-zinc-900 text-[var(--foreground)] resize-none focus:outline-none ring-1 ring-zinc-200 dark:ring-zinc-700 focus:ring-2 focus:ring-zinc-400 dark:focus:ring-zinc-500 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500 shadow-inner"
                 rows={3}
               />
             </div>
