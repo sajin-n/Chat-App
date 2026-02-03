@@ -12,6 +12,11 @@ interface Message {
   createdAt: string;
   clientId?: string;
   status?: MessageStatus;
+  replyTo?: {
+    _id: string;
+    content: string;
+    senderId: { _id: string; username: string };
+  };
 }
 
 interface Group {
@@ -30,47 +35,99 @@ const MessageBubble = memo(function MessageBubble({
   msg,
   isOwn,
   onDelete,
+  onReply,
 }: {
   msg: Message;
   isOwn: boolean;
   onDelete?: () => void;
+  onReply?: () => void;
 }) {
   const [showMenu, setShowMenu] = useState(false);
+  const [swipeX, setSwipeX] = useState(0);
+  const [isSwiping, setIsSwiping] = useState(false);
+  const touchStartX = useRef(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    setIsSwiping(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isSwiping) return;
+    const diff = e.touches[0].clientX - touchStartX.current;
+    setSwipeX(Math.max(0, Math.min(diff, 80)));
+  };
+
+  const handleTouchEnd = () => {
+    if (swipeX > 50 && onReply) {
+      onReply();
+      if (navigator.vibrate) navigator.vibrate(10);
+    }
+    setSwipeX(0);
+    setIsSwiping(false);
+  };
 
   return (
     <div
       className={`group flex ${isOwn ? "justify-end" : "justify-start"} animate-[slideUp_0.2s_ease-out]`}
       onMouseLeave={() => setShowMenu(false)}
     >
+      {/* Swipe reply indicator */}
+      {swipeX > 0 && (
+        <div
+          className="flex items-center justify-center w-8 transition-opacity"
+          style={{ opacity: swipeX / 80 }}
+        >
+          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${swipeX > 50 ? 'bg-blue-500 text-white' : 'bg-zinc-200 dark:bg-zinc-700'}`}>
+            ↩
+          </div>
+        </div>
+      )}
       <div
-        className={`relative px-3.5 py-2.5 max-w-[75%] rounded-xl transition-all duration-200 ${isOwn
+        className={`relative px-3 py-2 max-w-[75%] rounded-xl transition-transform ${isOwn
           ? "bg-[var(--foreground)] text-[var(--background)] rounded-br-sm"
           : "bg-[var(--foreground)]/[0.06] border border-[var(--border)]/40 rounded-bl-sm"
           }`}
+        style={{ transform: `translateX(${swipeX}px)` }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
+        {/* Reply preview if message is a reply */}
+        {msg.replyTo && (
+          <div className={`mb-2 p-2 rounded-lg text-xs border-l-2 ${isOwn
+            ? 'bg-white/10 border-white/40'
+            : 'bg-black/5 dark:bg-white/5 border-zinc-400'}`}>
+            <p className="font-medium opacity-70 mb-0.5">
+              {msg.replyTo.senderId?.username || 'Unknown'}
+            </p>
+            <p className="opacity-60 line-clamp-2">{msg.replyTo.content}</p>
+          </div>
+        )}
+
         {!isOwn && (
-          <p className="text-[10px] font-medium text-[var(--foreground)]/50 mb-1.5 tracking-wide uppercase">
+          <p className="text-[10px] font-medium text-[var(--foreground)]/50 mb-1 tracking-wide uppercase">
             {msg.senderId.username}
           </p>
         )}
         <p className="break-words text-[13px] leading-relaxed">{msg.content}</p>
 
         {isOwn && msg.status && (
-          <p className={`text-[10px] mt-1.5 text-right tracking-wide ${isOwn ? "opacity-60" : "text-[var(--muted)]"
-            }`}>
+          <p className={`text-[10px] mt-1 text-right tracking-wide ${isOwn ? "opacity-60" : "text-[var(--muted)]"}`}>
             {msg.status === "sending" && "···"}
             {msg.status === "sent" && "✓"}
             {msg.status === "failed" && "✗"}
           </p>
         )}
 
-        {isOwn && !msg.status && onDelete && (
+        {/* 3-dot menu button */}
+        {!msg.status && (
           <button
             onClick={(e) => {
               e.stopPropagation();
               setShowMenu(!showMenu);
             }}
-            className="absolute -top-1.5 -right-1.5 opacity-0 group-hover:opacity-100 transition-all duration-150 w-5 h-5 flex items-center justify-center rounded-full bg-[var(--background)] border border-[var(--border)]/60 shadow-sm text-[10px] hover:bg-[var(--foreground)]/[0.04] hover:scale-110"
+            className={`absolute -top-1.5 ${isOwn ? '-right-1.5' : '-left-1.5'} opacity-0 group-hover:opacity-100 transition-all duration-150 w-5 h-5 flex items-center justify-center rounded-full bg-[var(--background)] border border-[var(--border)]/60 shadow-sm text-[10px] hover:scale-110`}
             aria-label="Message options"
           >
             ⋮
@@ -78,22 +135,34 @@ const MessageBubble = memo(function MessageBubble({
         )}
 
         {showMenu && (
-          <div className="absolute -top-1 right-5 bg-[var(--background)] border border-[var(--border)]/60 shadow-lg z-10 rounded-lg overflow-hidden animate-[fadeIn_0.1s_ease-out]">
+          <div className={`absolute -top-1 ${isOwn ? 'right-5' : 'left-5'} bg-[var(--background)] border border-[var(--border)]/60 shadow-lg z-10 rounded-lg overflow-hidden animate-[fadeIn_0.1s_ease-out]`}>
             <button
               onClick={() => {
-                onDelete?.();
+                onReply?.();
                 setShowMenu(false);
               }}
-              className="block w-full px-3 py-2 text-left text-xs text-[var(--danger)] hover:bg-[var(--foreground)]/[0.03] transition-colors duration-150"
+              className="block w-full px-3 py-2 text-left text-xs hover:bg-[var(--foreground)]/[0.03] transition-colors duration-150"
             >
-              Delete
+              Reply
             </button>
+            {isOwn && onDelete && (
+              <button
+                onClick={() => {
+                  onDelete();
+                  setShowMenu(false);
+                }}
+                className="block w-full px-3 py-2 text-left text-xs text-[var(--danger)] hover:bg-[var(--foreground)]/[0.03] transition-colors duration-150"
+              >
+                Delete
+              </button>
+            )}
           </div>
         )}
       </div>
     </div>
   );
 });
+
 
 export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
   const { activeGroupId, setActiveGroupId, setMobileMenuOpen } = useChatStore();
@@ -112,6 +181,7 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
   const lastFetchRef = useRef<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
 
   const isAdmin = group?.admins.some((a) => a._id === userId) ?? false;
   const isCreator = group?.createdBy._id === userId;
@@ -202,17 +272,27 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
       createdAt: new Date().toISOString(),
       clientId,
       status: "sending",
+      replyTo: replyingTo ? {
+        _id: replyingTo._id,
+        content: replyingTo.content,
+        senderId: replyingTo.senderId,
+      } : undefined,
     };
 
     setMessages((prev) => [...prev, optimisticMessage]);
     setInput("");
+    setReplyingTo(null);
     setSending(true);
 
     try {
       const res = await fetch(`/api/groups/${activeGroupId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: optimisticMessage.content, clientId }),
+        body: JSON.stringify({
+          content: optimisticMessage.content,
+          clientId,
+          replyToId: optimisticMessage.replyTo?._id,
+        }),
       });
 
       if (res.ok) {
@@ -547,11 +627,37 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
               msg={msg}
               isOwn={isOwn}
               onDelete={isOwn && !msg.status ? () => handleDeleteMessage(msg._id) : undefined}
+              onReply={() => {
+                setReplyingTo(msg);
+                inputRef.current?.focus();
+              }}
             />
           );
         })}
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Reply Preview Bar */}
+      {replyingTo && (
+        <div className="shrink-0 px-4 py-2 border-t border-[var(--border)]/40 bg-[var(--foreground)]/[0.02] flex items-center gap-2">
+          <div className="w-0.5 h-8 bg-blue-500 rounded-full" />
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-medium text-blue-600 dark:text-blue-400">
+              Replying to {replyingTo.senderId.username}
+            </p>
+            <p className="text-xs text-[var(--muted)] truncate">
+              {replyingTo.content}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setReplyingTo(null)}
+            className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-[var(--foreground)]/[0.06] transition-colors text-[var(--muted)] text-sm"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Input */}
       <form

@@ -52,6 +52,11 @@ export async function GET(
 
     const messages = await Message.find(query)
       .populate("senderId", "username")
+      .populate({
+        path: "replyTo",
+        select: "content senderId",
+        populate: { path: "senderId", select: "username" }
+      })
       .sort({ createdAt: -1 })
       .limit(limit);
 
@@ -91,7 +96,7 @@ export async function POST(
       return validationErrorResponse(parsed.error);
     }
 
-    const { content, clientId } = parsed.data;
+    const { content, clientId, replyToId } = parsed.data;
 
     await dbConnect();
 
@@ -119,6 +124,7 @@ export async function POST(
       senderId: new mongoose.Types.ObjectId(session.user.id),
       content,
       clientId,
+      ...(replyToId && { replyTo: replyToId }),
     });
 
     await message.populate("senderId", "username");
