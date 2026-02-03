@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -33,17 +34,14 @@ export default function LoginPage() {
         }
       }
 
-      // Use form submission to avoid CSRF issues
-      const formData = new FormData();
-      formData.append("email", email);
-      formData.append("password", password);
-
-      const response = await fetch("/api/auth/callback/credentials", {
-        method: "POST",
-        body: formData,
+      // Use Auth.js signIn helper to handle CSRF and session
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
       });
 
-      if (!response.ok) {
+      if (result?.error) {
         throw new Error("Invalid credentials");
       }
 
@@ -359,8 +357,8 @@ export default function LoginPage() {
           {isRegister ? "Create Account" : "Welcome Back"}
         </h1>
         <p className="auth-subtitle">
-          {isRegister 
-            ? "Start your journey with us today" 
+          {isRegister
+            ? "Start your journey with us today"
             : "Sign in to continue your journey"}
         </p>
 
@@ -376,7 +374,7 @@ export default function LoginPage() {
               />
             </div>
           )}
-          
+
           <div className="input-group">
             <input
               name="email"
@@ -386,7 +384,7 @@ export default function LoginPage() {
               className="auth-input"
             />
           </div>
-          
+
           <div className="input-group">
             <input
               name="password"
@@ -427,8 +425,8 @@ export default function LoginPage() {
           onClick={() => setIsRegister(!isRegister)}
           className="toggle-link"
         >
-          {isRegister 
-            ? "Already have an account? Sign in" 
+          {isRegister
+            ? "Already have an account? Sign in"
             : "Don't have an account? Sign up"}
         </button>
       </div>

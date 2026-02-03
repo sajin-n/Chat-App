@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { CldUploadWidget } from "next-cloudinary";
 import { ProfilePageSkeleton } from "@/components/Skeleton";
+import { signIn, signOut } from "next-auth/react";
+import { useChatStore } from "@/lib/store";
 
 interface Comment {
   _id: string;
@@ -28,25 +31,22 @@ interface User {
   profilePicture?: string;
 }
 
-interface UploadResult {
-  event?: string;
-  info?: {
-    secure_url: string;
-    public_id: string;
-  };
-}
-
 interface UserProfileProps {
   userId: string;
+  onClose?: () => void;
 }
 
-export default function UserProfile({ userId }: UserProfileProps) {
+export default function UserProfile({ userId, onClose }: UserProfileProps) {
+  const router = useRouter();
+  const { setActiveView, setTargetBlogId } = useChatStore();
   const [user, setUser] = useState<User | null>(null);
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState("");
   const [saving, setSaving] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -65,6 +65,17 @@ export default function UserProfile({ userId }: UserProfileProps) {
   useEffect(() => {
     fetchProfile();
   }, [fetchProfile]);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleSaveProfile = useCallback(async () => {
     if (!editName.trim()) return;
@@ -123,182 +134,248 @@ export default function UserProfile({ userId }: UserProfileProps) {
     }
   }, []);
 
+  const handleDeleteAccount = useCallback(async () => {
+    if (!confirm("Are you sure you want to delete your account? This action cannot be undone.")) return;
+
+    try {
+      const res = await fetch("/api/users/me", { method: "DELETE" });
+      if (res.ok) {
+        await signOut({ callbackUrl: "/login" });
+      } else {
+        alert("Failed to delete account. Please try again.");
+      }
+    } catch (error) {
+      console.error("Failed to delete account:", error);
+      alert("An error occurred.");
+    }
+  }, []);
+
+  const handleNavigateToBlog = useCallback((blogId: string) => {
+    setTargetBlogId(blogId);
+    setActiveView("blog");
+    onClose?.(); // Close the profile modal
+  }, [setActiveView, setTargetBlogId, onClose]);
+
   if (loading) {
     return <ProfilePageSkeleton />;
   }
 
   if (!user) {
     return (
-      <div className="flex-1 flex items-center justify-center min-h-screen">
-        <p className="text-[var(--muted)] text-sm">User not found</p>
+      <div className="flex-1 flex items-center justify-center min-h-screen bg-[#0a0a0a]">
+        <p className="text-zinc-500 text-sm">User not found</p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      {/* Profile Card */}
-      <div className="bg-[var(--background)] border border-[var(--border)] rounded-2xl shadow-sm overflow-hidden mb-6">
-        <div className="p-8">
-          <div className="flex items-start gap-6">
-            {/* Profile Picture */}
-            <div className="relative group">
-              {user.profilePicture ? (
-                <Image
-                  src={user.profilePicture}
-                  alt={user.username}
-                  width={96}
-                  height={96}
-                  className="w-24 h-24 rounded-full object-cover ring-4 ring-[var(--background)] shadow-md transition-transform group-hover:scale-105"
-                />
-              ) : (
-                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[var(--border)] to-[var(--border)]/50 flex items-center justify-center text-3xl shadow-md ring-4 ring-[var(--background)] transition-transform group-hover:scale-105">
-                  👤
-                </div>
-              )}
-              {process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME && (
-                <CldUploadWidget
-                  uploadPreset="giga_chat"
-                  onSuccess={handleProfilePictureUpload}
+    <div className="min-h-screen bg-[#0a0a0a] text-zinc-100 pb-20">
+      <div className="max-w-2xl mx-auto px-4 py-8 md:py-12">
+        {/* Profile Header Card */}
+        <div className="bg-[#121212] border border-zinc-800 rounded-3xl p-6 md:p-8 mb-8 relative overflow-visible shadow-xl backdrop-blur-sm">
+          {/* 3-Dot Menu */}
+          <div className="absolute top-4 right-4 z-20" ref={menuRef}>
+            <button
+              onClick={() => setShowMenu(!showMenu)}
+              className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-full transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="1" />
+                <circle cx="19" cy="12" r="1" />
+                <circle cx="5" cy="12" r="1" />
+              </svg>
+            </button>
+
+            {showMenu && (
+              <div className="absolute right-0 mt-2 w-48 bg-[#1a1a1a] border border-zinc-800 rounded-xl shadow-2xl py-1 z-30 overflow-hidden transform origin-top-right animate-in fade-in zoom-in-95 duration-200">
+                <button
+                  onClick={() => {
+                    setIsEditing(true);
+                    setShowMenu(false);
+                  }}
+                  className="w-full text-left px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors flex items-center gap-2"
                 >
-                  {({ open }) => (
-                    <button
-                      onClick={() => open()}
-                      className="absolute -bottom-1 -right-1 bg-[var(--accent)] text-[var(--accent-foreground)] p-2 rounded-full hover:bg-[var(--accent)]/90 shadow-lg transition-all hover:scale-110 text-sm"
-                      aria-label="Upload profile picture"
-                    >
-                      📷
-                    </button>
-                  )}
-                </CldUploadWidget>
-              )}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" /></svg>
+                  Edit Profile
+                </button>
+                <button
+                  onClick={() => {
+                    handleDeleteAccount();
+                    setShowMenu(false);
+                  }}
+                  className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors flex items-center gap-2"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /><line x1="10" x2="10" y1="11" y2="17" /><line x1="14" x2="14" y1="11" y2="17" /></svg>
+                  Delete Account
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+            {/* Profile Picture */}
+            <div className="relative group shrink-0">
+              <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden ring-4 ring-[#1a1a1a] shadow-2xl relative">
+                {user.profilePicture ? (
+                  <Image
+                    src={user.profilePicture}
+                    alt={user.username}
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center text-3xl">
+                    👤
+                  </div>
+                )}
+
+                {/* Upload Overlay */}
+                {process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME && (
+                  <CldUploadWidget
+                    uploadPreset="giga_chat"
+                    onSuccess={handleProfilePictureUpload}
+                  >
+                    {({ open }) => (
+                      <div
+                        onClick={() => open()}
+                        className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer z-10"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>
+                      </div>
+                    )}
+                  </CldUploadWidget>
+                )}
+              </div>
             </div>
 
-            {/* Profile Info */}
-            <div className="flex-1 min-w-0">
+            {/* User Info */}
+            <div className="flex-1 text-center md:text-left w-full">
               {isEditing ? (
-                <div className="space-y-4">
-                  <input
-                    type="text"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    className="w-full px-4 py-3 border border-[var(--border)] rounded-xl bg-[var(--background)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent transition-all text-base shadow-sm"
-                    placeholder="Username"
-                  />
-                  <div className="flex gap-3">
+                <div className="space-y-4 max-w-sm mx-auto md:mx-0 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div>
+                    <label className="block text-xs font-medium text-zinc-500 mb-1 ml-1">Username</label>
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-[#1a1a1a] border border-zinc-800 rounded-xl text-zinc-200 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all placeholder:text-zinc-600"
+                      placeholder="Enter username"
+                      autoFocus
+                    />
+                  </div>
+
+                  <div className="flex gap-2 justify-center md:justify-start">
                     <button
                       onClick={handleSaveProfile}
                       disabled={saving}
-                      className="px-5 py-2.5 bg-[var(--accent)] text-[var(--accent-foreground)] rounded-xl hover:bg-[var(--accent)]/90 disabled:opacity-50 transition-all text-sm font-medium shadow-sm hover:shadow-md disabled:cursor-not-allowed"
+                      className="px-4 py-2 bg-zinc-100 text-zinc-900 rounded-lg text-sm font-semibold hover:bg-white disabled:opacity-50 transition-colors shadow-lg shadow-white/5"
                     >
-                      {saving ? "Saving..." : "Save Changes"}
+                      {saving ? "Saving..." : "Save"}
                     </button>
                     <button
                       onClick={() => {
                         setIsEditing(false);
                         setEditName(user.username);
                       }}
-                      className="px-5 py-2.5 border border-[var(--border)] rounded-xl hover:bg-[var(--border)]/30 transition-all text-sm font-medium"
+                      className="px-4 py-2 bg-zinc-800 text-zinc-300 rounded-lg text-sm font-medium hover:bg-zinc-700 transition-colors"
                     >
                       Cancel
                     </button>
                   </div>
                 </div>
               ) : (
-                <div>
-                  <div className="flex items-center gap-3 mb-3">
-                    <h1 className="text-2xl font-bold tracking-tight truncate">{user.username}</h1>
-                    <button
-                      onClick={() => setIsEditing(true)}
-                      className="px-4 py-1.5 border border-[var(--border)] rounded-lg text-xs font-medium hover:bg-[var(--border)]/30 transition-all hover:shadow-sm"
-                    >
-                      Edit Profile
-                    </button>
+                <div className="space-y-1">
+                  <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white mb-1">{user.username}</h1>
+                  <p className="text-zinc-500 text-sm font-medium">{user.email}</p>
+                </div>
+              )}
+
+              {/* Stats */}
+              {!isEditing && (
+                <div className="flex items-center justify-center md:justify-start gap-8 mt-6">
+                  <div className="text-center md:text-left">
+                    <p className="text-xl font-bold text-white">{blogs.length}</p>
+                    <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider">Posts</p>
                   </div>
-                  <p className="text-sm text-[var(--muted)] truncate">{user.email}</p>
-                  <div className="flex gap-6 mt-4 pt-4 border-t border-[var(--border)]">
-                    <div>
-                      <p className="text-2xl font-bold">{blogs.length}</p>
-                      <p className="text-xs text-[var(--muted)] uppercase tracking-wide">Posts</p>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold">
-                        {blogs.reduce((acc, blog) => acc + blog.likes.length, 0)}
-                      </p>
-                      <p className="text-xs text-[var(--muted)] uppercase tracking-wide">Likes</p>
-                    </div>
+                  <div className="text-center md:text-left">
+                    <p className="text-xl font-bold text-white">
+                      {blogs.reduce((acc, blog) => acc + blog.likes.length, 0)}
+                    </p>
+                    <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider">Likes</p>
                   </div>
                 </div>
               )}
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Posts Section */}
-      <div className="bg-[var(--background)] border border-[var(--border)] rounded-2xl shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-[var(--border)]">
-          <h2 className="text-lg font-semibold">Posts</h2>
-        </div>
+        {/* Posts Feed */}
+        <div>
+          <h2 className="text-lg font-semibold text-zinc-200 mb-4 px-1">Recent Posts</h2>
 
-        {blogs.length === 0 ? (
-          <div className="py-16 text-center">
-            <div className="text-5xl mb-4 opacity-50">📝</div>
-            <p className="text-[var(--muted)] text-sm">No posts yet</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-[var(--border)]">
-            {blogs.map((blog) => (
-              <div
-                key={blog._id}
-                className="p-6 hover:bg-[var(--border)]/10 transition-all group"
-              >
-                <div className="flex justify-between items-start mb-3">
-                  <p className="text-xs text-[var(--muted)] font-medium">
-                    {new Date(blog.createdAt).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </p>
-                  <button
-                    onClick={() => handleDeleteBlog(blog._id)}
-                    className="text-[var(--danger)] hover:bg-[var(--danger)]/10 px-3 py-1.5 rounded-lg text-xs font-medium transition-all opacity-0 group-hover:opacity-100"
-                  >
-                    Delete
-                  </button>
-                </div>
-
-                <p className="text-sm mb-3 whitespace-pre-wrap leading-relaxed">
-                  {blog.content}
-                </p>
-
-                {blog.imageUrl && (
-                  <div className="mb-4 rounded-xl overflow-hidden shadow-sm">
-                    <Image
-                      src={blog.imageUrl}
-                      alt="Blog post image"
-                      width={600}
-                      height={300}
-                      className="w-full max-h-80 object-cover transition-transform group-hover:scale-[1.02]"
-                    />
+          {blogs.length === 0 ? (
+            <div className="bg-[#121212] border border-zinc-800 rounded-2xl p-12 text-center text-zinc-500 dashed border-2 border-zinc-800/50">
+              <p>No posts yet. Start sharing!</p>
+            </div>
+          ) : (
+            <div className="grid gap-6">
+              {blogs.map((blog) => (
+                <div
+                  key={blog._id}
+                  onClick={() => handleNavigateToBlog(blog._id)}
+                  className="bg-[#121212] border border-zinc-800 rounded-2xl p-5 md:p-6 hover:border-zinc-700 transition-all cursor-pointer group hover:shadow-lg hover:shadow-purple-500/10"
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <p className="text-xs text-zinc-500 font-medium">
+                      {new Date(blog.createdAt).toLocaleDateString("en-US", {
+                        month: "long",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </p>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteBlog(blog._id);
+                      }}
+                      className="text-zinc-600 hover:text-red-400 p-1.5 rounded-md hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                      title="Delete Post"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>
+                    </button>
                   </div>
-                )}
 
-                <div className="flex gap-5 text-sm">
-                  <span className="text-[var(--muted)] flex items-center gap-1.5">
-                    <span className="text-base">❤️</span>
-                    {blog.likes.length}
-                  </span>
-                  <span className="text-[var(--muted)] flex items-center gap-1.5">
-                    <span className="text-base">💬</span>
-                    {blog.comments.length}
-                  </span>
+                  <p className="text-zinc-300 text-sm md:text-base mb-4 whitespace-pre-wrap leading-relaxed">
+                    {blog.content}
+                  </p>
+
+                  {blog.imageUrl && (
+                    <div className="mb-4 rounded-xl overflow-hidden border border-zinc-800/50 bg-black/50">
+                      <Image
+                        src={blog.imageUrl}
+                        alt="Blog post image"
+                        width={600}
+                        height={400}
+                        className="w-full h-auto object-cover max-h-96"
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-6 pt-2">
+                    <div className="flex items-center gap-2 text-zinc-500 text-sm">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={blog.likes.length > 0 ? "text-pink-500 fill-pink-500/20" : ""}><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" /></svg>
+                      <span>{blog.likes.length}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-zinc-500 text-sm">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                      <span>{blog.comments.length}</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

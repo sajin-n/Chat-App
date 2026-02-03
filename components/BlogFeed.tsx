@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import { CldUploadWidget } from "next-cloudinary";
 import { BlogPostSkeleton } from "@/components/Skeleton";
+import { useChatStore } from "@/lib/store";
 
 interface Blog {
   _id: string;
@@ -31,6 +32,7 @@ interface BlogFeedProps {
 }
 
 export default function BlogFeed({ userId }: BlogFeedProps) {
+  const { targetBlogId, setTargetBlogId } = useChatStore();
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);
   const [newBlogContent, setNewBlogContent] = useState("");
@@ -48,6 +50,7 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
   const [editingCommentContent, setEditingCommentContent] = useState<string>("");
   const [savingCommentEdit, setSavingCommentEdit] = useState<string | null>(null);
   const [openCommentMenus, setOpenCommentMenus] = useState<Record<string, boolean>>({});
+  const blogRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Get current user info
   useEffect(() => {
@@ -96,6 +99,20 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Scroll to target blog post when navigating from profile
+  useEffect(() => {
+    if (targetBlogId && blogs.length > 0 && blogRefs.current[targetBlogId]) {
+      setTimeout(() => {
+        blogRefs.current[targetBlogId]?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        // Clear the target after scrolling
+        setTimeout(() => setTargetBlogId(null), 1000);
+      }, 100);
+    }
+  }, [targetBlogId, blogs, setTargetBlogId]);
 
   const handlePostBlog = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -146,13 +163,13 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
     if (!confirm("Are you sure you want to delete this post?")) return;
 
     try {
-      const res = await fetch(`/api/blogs/${blogId}`, { 
+      const res = await fetch(`/api/blogs/${blogId}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
         },
       });
-      
+
       if (res.ok) {
         setBlogs((prev) => prev.filter((b) => b._id !== blogId));
         console.log('Blog deleted successfully');
@@ -213,7 +230,7 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
     event.preventDefault();
     console.log('Toggle menu clicked for blogId:', blogId);
     console.log('Current openMenus state:', openMenus);
-    
+
     setOpenMenus((prev) => {
       const newState = {
         ...prev,
@@ -507,9 +524,9 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
                         className="icon-button px-4 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-xl text-sm font-medium transition-all flex items-center gap-2 shadow-sm hover:shadow border border-zinc-200 dark:border-zinc-700"
                       >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                          <circle cx="8.5" cy="8.5" r="1.5"/>
-                          <polyline points="21 15 16 10 5 21"/>
+                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                          <circle cx="8.5" cy="8.5" r="1.5" />
+                          <polyline points="21 15 16 10 5 21" />
                         </svg>
                         Photo
                       </button>
@@ -525,8 +542,8 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
                 {posting ? (
                   <span className="flex items-center gap-2">
                     <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
                     Posting...
                   </span>
@@ -549,15 +566,15 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
               ))}
             </div>
           )}
-          
+
           {!loading && blogs.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 animate-fade-in">
               <div className="w-20 h-20 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-4">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400">
-                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-                  <polyline points="14 2 14 8 20 8"/>
-                  <line x1="12" y1="18" x2="12" y2="12"/>
-                  <line x1="9" y1="15" x2="15" y2="15"/>
+                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="12" y1="18" x2="12" y2="12" />
+                  <line x1="9" y1="15" x2="15" y2="15" />
                 </svg>
               </div>
               <p className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-2">No posts yet</p>
@@ -569,14 +586,18 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
             {blogs.map((blog, index) => {
               const authorId = blog.authorId._id?.toString?.() ?? blog.authorId._id;
               const isAuthor = authorId === userId || (currentUser?._id && authorId === currentUser._id.toString?.());
-              const isLiked = blog.likes.some((id: string | { toString?: () => string }) => 
+              const isLiked = blog.likes.some((id: string | { toString?: () => string }) =>
                 (typeof id === 'string' ? id : id.toString?.()) === userId
               );
 
               return (
                 <div
                   key={blog._id}
-                  className="post-card bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800/60 rounded-3xl shadow-lg hover:shadow-2xl relative overflow-hidden animate-slide-up backdrop-blur-sm"
+                  ref={(el) => { blogRefs.current[blog._id] = el; }}
+                  className={`post-card bg-white dark:bg-zinc-900 border rounded-3xl shadow-lg hover:shadow-2xl relative overflow-hidden animate-slide-up backdrop-blur-sm ${targetBlogId === blog._id
+                    ? "border-purple-500 dark:border-purple-400 ring-2 ring-purple-500/50 dark:ring-purple-400/50"
+                    : "border-zinc-200/60 dark:border-zinc-800/60"
+                    }`}
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
                   <div className="p-5">
@@ -602,8 +623,8 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
                           <p className="font-semibold text-zinc-900 dark:text-zinc-100">{blog.authorId.username}</p>
                           <p className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <circle cx="12" cy="12" r="10"/>
-                              <polyline points="12 6 12 12 16 14"/>
+                              <circle cx="12" cy="12" r="10" />
+                              <polyline points="12 6 12 12 16 14" />
                             </svg>
                             {new Date(blog.createdAt).toLocaleDateString("en-US", {
                               month: "short",
@@ -622,9 +643,9 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
                             title="Post options"
                           >
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-zinc-400 dark:text-zinc-500">
-                              <circle cx="12" cy="5" r="2"/>
-                              <circle cx="12" cy="12" r="2"/>
-                              <circle cx="12" cy="19" r="2"/>
+                              <circle cx="12" cy="5" r="2" />
+                              <circle cx="12" cy="12" r="2" />
+                              <circle cx="12" cy="19" r="2" />
                             </svg>
                           </button>
                           {openMenus[blog._id] && (
@@ -642,8 +663,8 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
                                   className="w-full px-4 py-2.5 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors duration-150 flex items-center gap-2 font-medium"
                                 >
                                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                   </svg>
                                   Edit
                                 </button>
@@ -659,10 +680,10 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
                                   className="w-full px-4 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors duration-150 flex items-center gap-2 font-medium"
                                 >
                                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <polyline points="3 6 5 6 21 6"/>
-                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                                    <line x1="10" y1="11" x2="10" y2="17"/>
-                                    <line x1="14" y1="11" x2="14" y2="17"/>
+                                    <polyline points="3 6 5 6 21 6" />
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                    <line x1="10" y1="11" x2="10" y2="17" />
+                                    <line x1="14" y1="11" x2="14" y2="17" />
                                   </svg>
                                   Delete
                                 </button>
@@ -728,24 +749,23 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
                     <div className="flex gap-6 py-4 text-sm border-t border-zinc-100 dark:border-zinc-800 mt-2">
                       <button
                         onClick={() => handleLike(blog._id)}
-                        className={`icon-button flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all hover:bg-zinc-100 dark:hover:bg-zinc-800 ${
-                          isLiked 
-                            ? "text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-950/20" 
-                            : "text-zinc-500 dark:text-zinc-400 hover:text-red-500 dark:hover:text-red-400"
-                        }`}
+                        className={`icon-button flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all hover:bg-zinc-100 dark:hover:bg-zinc-800 ${isLiked
+                          ? "text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-950/20"
+                          : "text-zinc-500 dark:text-zinc-400 hover:text-red-500 dark:hover:text-red-400"
+                          }`}
                       >
-                        <svg 
-                          width="18" 
-                          height="18" 
-                          viewBox="0 0 24 24" 
+                        <svg
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
                           fill={isLiked ? "currentColor" : "none"}
-                          stroke="currentColor" 
-                          strokeWidth="2" 
-                          strokeLinecap="round" 
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
                           strokeLinejoin="round"
                           className="transition-all"
                         >
-                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                         </svg>
                         <span className="font-medium">{blog.likes.length}</span>
                       </button>
@@ -768,7 +788,7 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
                         className="icon-button flex items-center gap-2 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all"
                       >
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                         </svg>
                         <span className="font-medium">{blog.comments.length}</span>
                       </button>
@@ -776,9 +796,8 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
 
                     {/* Comments */}
                     {expandedComments[blog._id] && (
-                      <div className={`space-y-3 border-t border-zinc-100 dark:border-zinc-800 pt-4 ${
-                        closingComments[blog._id] ? 'animate-collapse-up' : 'animate-expand-down'
-                      }`}>
+                      <div className={`space-y-3 border-t border-zinc-100 dark:border-zinc-800 pt-4 ${closingComments[blog._id] ? 'animate-collapse-up' : 'animate-expand-down'
+                        }`}>
                         {blog.comments.map((comment) => (
                           <div key={comment._id} className="flex gap-3">
                             {comment.authorId.profilePicture ? (
@@ -805,49 +824,49 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
                                     const isCommentAuthor = commentAuthorId === userId || (currentUser?._id && commentAuthorId === currentUser._id.toString?.());
                                     const canModifyComment = isCommentAuthor || isAuthor;
                                     return canModifyComment && (
-                                    <div className="relative">
-                                      <button
-                                        onClick={(e) => toggleCommentMenu(comment._id, e)}
-                                        className="icon-button opacity-0 group-hover:opacity-100 p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-all"
-                                        title="Comment options"
-                                      >
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-zinc-400">
-                                          <circle cx="12" cy="5" r="2"/>
-                                          <circle cx="12" cy="12" r="2"/>
-                                          <circle cx="12" cy="19" r="2"/>
-                                        </svg>
-                                      </button>
-                                      {openCommentMenus[comment._id] && (
-                                        <div className="menu-dropdown absolute right-0 top-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-xl py-1 z-20 min-w-[100px] animate-slide-down">
-                                          {isCommentAuthor && (
+                                      <div className="relative">
+                                        <button
+                                          onClick={(e) => toggleCommentMenu(comment._id, e)}
+                                          className="icon-button opacity-0 group-hover:opacity-100 p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-all"
+                                          title="Comment options"
+                                        >
+                                          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-zinc-400">
+                                            <circle cx="12" cy="5" r="2" />
+                                            <circle cx="12" cy="12" r="2" />
+                                            <circle cx="12" cy="19" r="2" />
+                                          </svg>
+                                        </button>
+                                        {openCommentMenus[comment._id] && (
+                                          <div className="menu-dropdown absolute right-0 top-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-xl py-1 z-20 min-w-[100px] animate-slide-down">
+                                            {isCommentAuthor && (
+                                              <button
+                                                onClick={() => handleEditComment(comment._id, comment.content)}
+                                                className="w-full px-3 py-2 text-left text-xs hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors font-medium flex items-center gap-2"
+                                              >
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                                </svg>
+                                                Edit
+                                              </button>
+                                            )}
                                             <button
-                                              onClick={() => handleEditComment(comment._id, comment.content)}
-                                              className="w-full px-3 py-2 text-left text-xs hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors font-medium flex items-center gap-2"
+                                              onClick={() => {
+                                                setOpenCommentMenus({});
+                                                handleDeleteComment(blog._id, comment._id);
+                                              }}
+                                              className="w-full px-3 py-2 text-left text-xs hover:bg-red-50 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400 transition-colors font-medium flex items-center gap-2"
                                             >
                                               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                                <polyline points="3 6 5 6 21 6" />
+                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                                               </svg>
-                                              Edit
+                                              Delete
                                             </button>
-                                          )}
-                                          <button
-                                            onClick={() => {
-                                              setOpenCommentMenus({});
-                                              handleDeleteComment(blog._id, comment._id);
-                                            }}
-                                            className="w-full px-3 py-2 text-left text-xs hover:bg-red-50 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400 transition-colors font-medium flex items-center gap-2"
-                                          >
-                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                              <polyline points="3 6 5 6 21 6"/>
-                                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                                            </svg>
-                                            Delete
-                                          </button>
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
                                   })()}
                                 </div>
                                 {editingComment === comment._id ? (

@@ -46,9 +46,9 @@ export async function PATCH(req: NextRequest) {
         return badRequestResponse("Username must be between 2 and 30 characters");
       }
       // Check if username is already taken by another user
-      const existingUser = await User.findOne({ 
-        username: trimmedUsername, 
-        _id: { $ne: session.user.id } 
+      const existingUser = await User.findOne({
+        username: trimmedUsername,
+        _id: { $ne: session.user.id }
       });
       if (existingUser) {
         return badRequestResponse("Username is already taken");
@@ -81,6 +81,29 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json(user);
   } catch (error) {
     console.error("Error updating user:", error);
+    return serverErrorResponse();
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return unauthorizedResponse();
+    }
+
+    await dbConnect();
+
+    // Delete the user
+    const deletedUser = await User.findByIdAndDelete(session.user.id);
+
+    if (!deletedUser) {
+      return badRequestResponse("User not found");
+    }
+
+    return NextResponse.json({ message: "User deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting user:", error);
     return serverErrorResponse();
   }
 }

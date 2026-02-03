@@ -18,7 +18,7 @@ export default function ChatContainer({ userId }: ChatContainerProps) {
   const { activeView, setActiveView, mobileMenuOpen, setMobileMenuOpen, activeChatId, activeGroupId } = useChatStore();
   const [showProfile, setShowProfile] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  
+
   const hasActiveConversation = activeView === "chats" ? !!activeChatId : !!activeGroupId;
 
   // Get current user info
@@ -60,31 +60,28 @@ export default function ChatContainer({ userId }: ChatContainerProps) {
         <div className="flex border-b border-[var(--border)] overflow-x-auto">
           <button
             onClick={() => setActiveView("chats")}
-            className={`flex-1 py-3 text-sm font-medium transition-colors whitespace-nowrap ${
-              activeView === "chats"
+            className={`flex-1 py-3 text-sm font-medium transition-colors whitespace-nowrap ${activeView === "chats"
                 ? "border-b-2 border-[var(--accent)] text-[var(--foreground)]"
                 : "text-[var(--muted)] hover:text-[var(--foreground)]"
-            }`}
+              }`}
           >
             Chats
           </button>
           <button
             onClick={() => setActiveView("groups")}
-            className={`flex-1 py-3 text-sm font-medium transition-colors whitespace-nowrap ${
-              activeView === "groups"
+            className={`flex-1 py-3 text-sm font-medium transition-colors whitespace-nowrap ${activeView === "groups"
                 ? "border-b-2 border-[var(--accent)] text-[var(--foreground)]"
                 : "text-[var(--muted)] hover:text-[var(--foreground)]"
-            }`}
+              }`}
           >
             Groups
           </button>
           <button
             onClick={() => setActiveView("blog")}
-            className={`flex-1 py-3 text-sm font-medium transition-colors whitespace-nowrap ${
-              activeView === "blog"
+            className={`flex-1 py-3 text-sm font-medium transition-colors whitespace-nowrap ${activeView === "blog"
                 ? "border-b-2 border-[var(--accent)] text-[var(--foreground)]"
                 : "text-[var(--muted)] hover:text-[var(--foreground)]"
-            }`}
+              }`}
           >
             Blog
           </button>
@@ -125,8 +122,8 @@ export default function ChatContainer({ userId }: ChatContainerProps) {
                 className="flex items-center gap-2 px-2 py-1.5 text-sm hover:bg-[var(--border)] rounded-lg transition-colors"
               >
                 {currentUser.profilePicture ? (
-                  <img 
-                    src={currentUser.profilePicture} 
+                  <img
+                    src={currentUser.profilePicture}
                     alt={currentUser.username}
                     className="w-7 h-7 rounded-full object-cover"
                   />
@@ -166,7 +163,7 @@ export default function ChatContainer({ userId }: ChatContainerProps) {
               </button>
             </div>
             <div className="overflow-y-auto max-h-[calc(80vh-160px)]">
-              <UserProfile userId={userId} />
+              <UserProfile userId={userId} onClose={() => setShowProfile(false)} />
             </div>
             <div className="p-4 border-t border-[var(--border)]">
               <form action="/api/auth/signout" method="post">
