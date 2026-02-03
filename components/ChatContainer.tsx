@@ -7,6 +7,7 @@ import ChatWindow from "@/components/ChatWindow";
 import GroupList from "@/components/GroupList";
 import GroupChatWindow from "@/components/GroupChatWindow";
 import BlogFeed from "@/components/BlogFeed";
+import BlogSidebar from "@/components/BlogSidebar";
 import UserProfile from "@/components/UserProfile";
 import { ErrorBoundary, ChatErrorFallback } from "@/components/ErrorBoundary";
 
@@ -61,8 +62,8 @@ export default function ChatContainer({ userId }: ChatContainerProps) {
           <button
             onClick={() => setActiveView("chats")}
             className={`flex-1 py-3 text-sm font-medium transition-colors whitespace-nowrap ${activeView === "chats"
-                ? "border-b-2 border-[var(--accent)] text-[var(--foreground)]"
-                : "text-[var(--muted)] hover:text-[var(--foreground)]"
+              ? "border-b-2 border-[var(--accent)] text-[var(--foreground)]"
+              : "text-[var(--muted)] hover:text-[var(--foreground)]"
               }`}
           >
             Chats
@@ -70,8 +71,8 @@ export default function ChatContainer({ userId }: ChatContainerProps) {
           <button
             onClick={() => setActiveView("groups")}
             className={`flex-1 py-3 text-sm font-medium transition-colors whitespace-nowrap ${activeView === "groups"
-                ? "border-b-2 border-[var(--accent)] text-[var(--foreground)]"
-                : "text-[var(--muted)] hover:text-[var(--foreground)]"
+              ? "border-b-2 border-[var(--accent)] text-[var(--foreground)]"
+              : "text-[var(--muted)] hover:text-[var(--foreground)]"
               }`}
           >
             Groups
@@ -79,8 +80,8 @@ export default function ChatContainer({ userId }: ChatContainerProps) {
           <button
             onClick={() => setActiveView("blog")}
             className={`flex-1 py-3 text-sm font-medium transition-colors whitespace-nowrap ${activeView === "blog"
-                ? "border-b-2 border-[var(--accent)] text-[var(--foreground)]"
-                : "text-[var(--muted)] hover:text-[var(--foreground)]"
+              ? "border-b-2 border-[var(--accent)] text-[var(--foreground)]"
+              : "text-[var(--muted)] hover:text-[var(--foreground)]"
               }`}
           >
             Blog
@@ -95,9 +96,13 @@ export default function ChatContainer({ userId }: ChatContainerProps) {
             ) : activeView === "groups" ? (
               <GroupList userId={userId} />
             ) : (
-              <div className="p-4 text-center text-[var(--muted)] text-sm">
-                <p>Browse posts in the main feed</p>
-              </div>
+              <BlogSidebar
+                userId={userId}
+                onSelectPost={(blogId) => {
+                  // Set targetBlogId to scroll to post
+                  useChatStore.getState().setTargetBlogId(blogId);
+                }}
+              />
             )}
           </ErrorBoundary>
         </div>

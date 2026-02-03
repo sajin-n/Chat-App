@@ -22,8 +22,8 @@ export async function GET(req: NextRequest) {
     username: { $regex: query, $options: "i" },
     _id: { $ne: session.user.id },
   })
-    .select("username")
+    .select("username profilePicture")
     .limit(10);
 
-  return NextResponse.json(users);
+  return NextResponse.json({ users });
 }

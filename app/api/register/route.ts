@@ -22,11 +22,12 @@ export async function POST(req: NextRequest) {
     }
 
     const { username, email, password } = parsed.data;
+    const normalizedEmail = email.toLowerCase();
 
     await dbConnect();
 
     const existingUser = await User.findOne({
-      $or: [{ email }, { username }],
+      $or: [{ email: normalizedEmail }, { username }],
     });
 
     if (existingUser) {
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
 
     const user = await User.create({
       username,
-      email,
+      email: normalizedEmail,
       password: hashedPassword,
     });
 

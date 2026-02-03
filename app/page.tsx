@@ -9,6 +9,11 @@ export default async function Home() {
     redirect("/login");
   }
 
+  // Developer should be on dashboard, not chat app
+  if ((session.user as any).role === "developer") {
+    redirect("/dashboard");
+  }
+
   return (
     <div className="h-screen flex flex-col">
       <ChatContainer userId={session.user.id!} />
