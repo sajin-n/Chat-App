@@ -20,7 +20,7 @@ export async function GET(
 
     const { chatId } = await params;
     const { searchParams } = new URL(req.url);
-    
+
     const parsed = paginationSchema.safeParse({
       limit: searchParams.get("limit"),
       cursor: searchParams.get("cursor"),
@@ -46,6 +46,11 @@ export async function GET(
 
     const messages = await Message.find(query)
       .populate("senderId", "username")
+      .populate({
+        path: "replyTo",
+        select: "content senderId",
+        populate: { path: "senderId", select: "username" }
+      })
       .sort({ _id: -1 })
       .limit(limit + 1);
 
@@ -87,13 +92,13 @@ export async function POST(
 
     const { chatId } = await params;
     const body = await req.json();
-    
+
     const parsed = sendMessageSchema.safeParse(body);
     if (!parsed.success) {
       return validationErrorResponse(parsed.error);
     }
 
-    const { content, clientId } = parsed.data;
+    const { content, clientId, replyToId } = parsed.data;
 
     await dbConnect();
 
@@ -111,6 +116,7 @@ export async function POST(
       senderId: session.user.id,
       content: content.trim(),
       clientId,
+      ...(replyToId && { replyTo: replyToId }),
     });
 
     await Chat.findByIdAndUpdate(chatId, {

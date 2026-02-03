@@ -109,9 +109,9 @@ export default function ChatContainer({ userId }: ChatContainerProps) {
       </aside>
 
       {/* Main content */}
-      <main className={`flex-1 flex flex-col ${!hasActiveConversation && activeView !== "blog" ? "mobile-hidden md:flex" : ""}`}>
+      <main className={`flex-1 flex flex-col min-h-0 overflow-hidden ${!hasActiveConversation && activeView !== "blog" ? "mobile-hidden md:flex" : ""}`}>
         {/* Header */}
-        <div className="p-3 border-b border-[var(--border)] bg-[var(--background)] flex items-center justify-between">
+        <div className="shrink-0 p-3 border-b border-[var(--border)] bg-[var(--background)] flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setMobileMenuOpen(true)}

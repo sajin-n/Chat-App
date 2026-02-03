@@ -23,6 +23,7 @@ export default function ChatList({ userId }: ChatListProps) {
   const [newChatUsername, setNewChatUsername] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
+  const [deletedUserChatId, setDeletedUserChatId] = useState<string | null>(null);
 
   const fetchChats = useCallback(async () => {
     try {
@@ -76,8 +77,34 @@ export default function ChatList({ userId }: ChatListProps) {
   }
 
   function handleSelectChat(chatId: string) {
+    const chat = chats.find((c) => c._id === chatId);
+    const other = chat ? getOtherParticipant(chat) : null;
+
+    if (!other) {
+      setDeletedUserChatId(chatId);
+      return;
+    }
+
     setActiveChatId(chatId);
     setMobileMenuOpen(false);
+  }
+
+  async function confirmDeleteChat() {
+    if (!deletedUserChatId) return;
+
+    try {
+      await fetch(`/api/chats/${deletedUserChatId}`, {
+        method: "DELETE",
+      });
+      setChats((prev) => prev.filter((c) => c._id !== deletedUserChatId));
+      if (activeChatId === deletedUserChatId) {
+        setActiveChatId(null);
+      }
+    } catch (err) {
+      console.error("Failed to delete chat", err);
+    } finally {
+      setDeletedUserChatId(null);
+    }
   }
 
   return (
@@ -132,16 +159,16 @@ export default function ChatList({ userId }: ChatListProps) {
                 key={chat._id}
                 onClick={() => handleSelectChat(chat._id)}
                 className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-all ${isActive
-                    ? "bg-zinc-100 dark:bg-zinc-800"
-                    : hasUnread
-                      ? "bg-blue-50 dark:bg-blue-950/20 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
-                      : "hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                  ? "bg-zinc-100 dark:bg-zinc-800"
+                  : hasUnread
+                    ? "bg-blue-50 dark:bg-blue-950/20 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                    : "hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
                   }`}
               >
                 {/* Avatar */}
                 <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0 ${isActive
-                    ? "bg-zinc-900 dark:bg-white text-white dark:text-zinc-900"
-                    : "bg-gradient-to-br from-zinc-200 to-zinc-300 dark:from-zinc-700 dark:to-zinc-600 text-zinc-600 dark:text-zinc-300"
+                  ? "bg-zinc-900 dark:bg-white text-white dark:text-zinc-900"
+                  : "bg-gradient-to-br from-zinc-200 to-zinc-300 dark:from-zinc-700 dark:to-zinc-600 text-zinc-600 dark:text-zinc-300"
                   }`}>
                   {other?.username?.[0]?.toUpperCase() || "?"}
                 </div>
@@ -150,7 +177,7 @@ export default function ChatList({ userId }: ChatListProps) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
                     <p className={`font-medium truncate ${hasUnread ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-700 dark:text-zinc-300"}`}>
-                      {other?.username || "Unknown"}
+                      {other?.username || "Unknown User"}
                     </p>
                     {hasUnread && (
                       <span className="flex-shrink-0 min-w-[22px] h-[22px] px-1.5 bg-blue-500 text-white text-xs font-semibold rounded-full flex items-center justify-center">
@@ -169,6 +196,32 @@ export default function ChatList({ userId }: ChatListProps) {
           })}
         </div>
       </div>
+      {/* Deleted User Modal */}
+      {deletedUserChatId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xl max-w-sm w-full p-6 animate-[scaleIn_0.15s_ease-out] border border-zinc-200 dark:border-zinc-800" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4 text-red-500">
+              <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="23" y1="11" x2="17" y2="11" /></svg>
+              </div>
+              <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                User Deleted
+              </h3>
+            </div>
+            <p className="text-zinc-500 dark:text-zinc-400 mb-6 leading-relaxed">
+              This user has deleted their account. By clicking OK, this chat will be removed from your list.
+            </p>
+            <div className="flex justify-end">
+              <button
+                onClick={confirmDeleteChat}
+                className="w-full sm:w-auto px-6 py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl font-medium hover:opacity-90 transition-opacity shadow-lg shadow-zinc-200 dark:shadow-zinc-900/50"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

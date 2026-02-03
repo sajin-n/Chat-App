@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import { User } from "@/lib/models/User";
+import { Blog } from "@/lib/models/Blog";
+import { Comment } from "@/lib/models/Comment";
+import { Chat } from "@/lib/models/Chat";
+import { Message } from "@/lib/models/Message";
 import { unauthorizedResponse, serverErrorResponse, badRequestResponse } from "@/lib/api-response";
 
 export async function GET(req: NextRequest) {
@@ -94,8 +99,35 @@ export async function DELETE(req: NextRequest) {
 
     await dbConnect();
 
-    // Delete the user
-    const deletedUser = await User.findByIdAndDelete(session.user.id);
+    const userId = session.user.id;
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+
+    // Comprehensive cleanup before deleting user
+    // 1. Delete user's blogs
+    await Blog.deleteMany({ authorId: userObjectId });
+
+    // 2. Delete user's comments
+    await Comment.deleteMany({ authorId: userObjectId });
+
+    // 3. Delete user's messages
+    await Message.deleteMany({ senderId: userObjectId });
+
+    // 4. Remove user from all chats (participants and admins)
+    await Chat.updateMany(
+      { participants: userObjectId },
+      {
+        $pull: {
+          participants: userObjectId,
+          admins: userObjectId
+        }
+      }
+    );
+
+    // 5. Delete chats with no remaining participants
+    await Chat.deleteMany({ participants: { $size: 0 } });
+
+    // 6. Delete the user
+    const deletedUser = await User.findByIdAndDelete(userId);
 
     if (!deletedUser) {
       return badRequestResponse("User not found");
@@ -107,3 +139,4 @@ export async function DELETE(req: NextRequest) {
     return serverErrorResponse();
   }
 }
+

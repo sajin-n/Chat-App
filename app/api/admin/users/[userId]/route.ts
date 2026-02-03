@@ -89,11 +89,19 @@ export async function DELETE(
         // Delete user's messages
         await Message.deleteMany({ senderId: userObjectId });
 
-        // Remove user from chats
+        // Remove user from chats (participants and admins)
         await Chat.updateMany(
             { participants: userObjectId },
-            { $pull: { participants: userObjectId } }
+            {
+                $pull: {
+                    participants: userObjectId,
+                    admins: userObjectId
+                }
+            }
         );
+
+        // Delete chats with no remaining participants
+        await Chat.deleteMany({ participants: { $size: 0 } });
 
         // Delete the user
         await User.findByIdAndDelete(userId);

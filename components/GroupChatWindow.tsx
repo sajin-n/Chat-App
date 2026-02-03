@@ -44,8 +44,8 @@ const MessageBubble = memo(function MessageBubble({
     >
       <div
         className={`relative px-3.5 py-2.5 max-w-[75%] rounded-xl transition-all duration-200 ${isOwn
-            ? "bg-[var(--foreground)] text-[var(--background)] rounded-br-sm"
-            : "bg-[var(--foreground)]/[0.06] border border-[var(--border)]/40 rounded-bl-sm"
+          ? "bg-[var(--foreground)] text-[var(--background)] rounded-br-sm"
+          : "bg-[var(--foreground)]/[0.06] border border-[var(--border)]/40 rounded-bl-sm"
           }`}
       >
         {!isOwn && (
@@ -344,7 +344,7 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full">
+    <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden">
       {/* Header */}
       <div className="px-4 py-3 border-b border-[var(--border)]/40 flex items-center justify-between backdrop-blur-sm bg-[var(--background)]/80">
         <div className="flex items-center gap-3">
@@ -512,7 +512,7 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
       <div
         ref={messagesContainerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-4 py-4 space-y-2"
+        className="flex-1 overflow-y-auto px-4 py-4 space-y-2 min-h-0"
       >
         {loading && messages.length === 0 && (
           <div className="space-y-3">
@@ -556,7 +556,7 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
       {/* Input */}
       <form
         onSubmit={handleSend}
-        className="px-4 py-3 border-t border-[var(--border)]/40 flex gap-2 backdrop-blur-sm bg-[var(--background)]/80"
+        className="shrink-0 px-4 py-3 border-t border-[var(--border)]/40 flex gap-2 backdrop-blur-sm bg-[var(--background)]/80"
       >
         <input
           ref={inputRef}
