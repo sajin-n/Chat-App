@@ -27,6 +27,10 @@ export function unauthorizedResponse(): NextResponse<ApiError> {
   return errorResponse("Unauthorized", 401);
 }
 
+export function badRequestResponse(message = "Bad request"): NextResponse<ApiError> {
+  return errorResponse(message, 400);
+}
+
 export function notFoundResponse(resource = "Resource"): NextResponse<ApiError> {
   return errorResponse(`${resource} not found`, 404);
 }

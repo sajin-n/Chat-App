@@ -49,6 +49,12 @@ export async function GET(
       .sort({ _id: -1 })
       .limit(limit + 1);
 
+    // Mark messages as read for this user
+    await Chat.updateOne(
+      { _id: chatId },
+      { $set: { [`lastReadBy.${session.user.id}`]: new Date() } }
+    );
+
     const hasMore = messages.length > limit;
     const results = hasMore ? messages.slice(0, -1) : messages;
     const nextCursor = hasMore ? results[results.length - 1]._id.toString() : null;
@@ -109,6 +115,7 @@ export async function POST(
 
     await Chat.findByIdAndUpdate(chatId, {
       lastMessage: content.trim().substring(0, 100),
+      lastMessageAt: new Date(),
       updatedAt: new Date(),
     });
 

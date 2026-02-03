@@ -13,37 +13,50 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
+        try {
+          if (!credentials?.email || !credentials?.password) {
+            console.log("[Auth] Missing credentials");
+            return null;
+          }
+
+          await dbConnect();
+          const user = await User.findOne({ email: credentials.email });
+
+          if (!user) {
+            console.log("[Auth] User not found:", credentials.email);
+            return null;
+          }
+
+          const isValid = await bcrypt.compare(
+            credentials.password as string,
+            user.password
+          );
+
+          if (!isValid) {
+            console.log("[Auth] Invalid password for:", credentials.email);
+            return null;
+          }
+
+          console.log("[Auth] Login successful:", user.email);
+          return {
+            id: user._id.toString(),
+            email: user.email,
+            name: user.username,
+          };
+        } catch (error) {
+          console.error("[Auth] Error in authorize:", error);
           return null;
         }
-
-        await dbConnect();
-        const user = await User.findOne({ email: credentials.email });
-
-        if (!user) {
-          return null;
-        }
-
-        const isValid = await bcrypt.compare(
-          credentials.password as string,
-          user.password
-        );
-
-        if (!isValid) {
-          return null;
-        }
-
-        return {
-          id: user._id.toString(),
-          email: user.email,
-          name: user.username,
-        };
       },
     }),
   ],
   pages: {
     signIn: "/login",
   },
+  session: {
+    strategy: "jwt",
+  },
+  trustHost: true,
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
