@@ -456,24 +456,8 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
               <circle cx="12" cy="19" r="2" />
             </svg>
           </button>
-          {showMenu && (
-            <div className="absolute right-0 top-full mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-xl z-50 min-w-[160px] rounded-xl overflow-hidden animate-[scaleIn_0.15s_ease-out]">
-              <button
-                onClick={handleClearChat}
-                className="w-full px-4 py-2.5 text-left text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6" /></svg>
-                Clear Chat
-              </button>
-              <button
-                onClick={handleDeleteChat}
-                className="w-full px-4 py-2.5 text-left text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors flex items-center gap-2"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" /></svg>
-                Delete Chat
-              </button>
-            </div>
-          )}
+
+
         </div>
       </div>
 
@@ -614,6 +598,50 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
           </button>
         </div>
       </form>
+
+      {/* Chat Options Modal - Moved to root level and optimized for mobile */}
+      {showMenu && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]">
+          <div
+            className="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl w-full max-w-[280px] overflow-hidden animate-[scaleIn_0.15s_ease-out] border border-zinc-200 dark:border-zinc-800"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-3 border-b border-zinc-100 dark:border-zinc-800">
+              <h3 className="font-semibold text-center text-sm text-zinc-900 dark:text-zinc-100">Chat Options</h3>
+            </div>
+            <div className="p-1 space-y-0.5">
+              <button
+                onClick={handleClearChat}
+                className="w-full px-3 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg transition-colors flex items-center gap-3 text-sm text-zinc-700 dark:text-zinc-300 font-medium"
+              >
+                <div className="w-7 h-7 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6" /></svg>
+                </div>
+                Clear Chat
+              </button>
+              <button
+                onClick={handleDeleteChat}
+                className="w-full px-3 py-2.5 text-left hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors flex items-center gap-3 text-sm text-red-600 dark:text-red-400 font-medium"
+              >
+                <div className="w-7 h-7 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" /></svg>
+                </div>
+                Delete Chat
+              </button>
+            </div>
+            <div className="p-1 border-t border-zinc-100 dark:border-zinc-800">
+              <button
+                onClick={() => setShowMenu(false)}
+                className="w-full py-2.5 text-center text-sm text-zinc-500 font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+          {/* Click backdrop to close */}
+          <div className="absolute inset-0 z-[-1]" onClick={() => setShowMenu(false)} />
+        </div>
+      )}
     </div>
   );
 }
