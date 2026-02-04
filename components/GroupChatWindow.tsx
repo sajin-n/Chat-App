@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, memo } from "react";
 import { useChatStore } from "@/lib/store";
+import ConfirmModal from "@/components/ConfirmModal";
 
 type MessageStatus = "sending" | "sent" | "failed";
 
@@ -182,6 +183,7 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+  const [deleteGroupConfirm, setDeleteGroupConfirm] = useState(false);
 
   const isAdmin = group?.admins.some((a) => a._id === userId) ?? false;
   const isCreator = group?.createdBy._id === userId;
@@ -401,7 +403,7 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
   }, [activeGroupId]);
 
   const handleDeleteGroup = useCallback(async () => {
-    if (!activeGroupId || !confirm("Delete this group?")) return;
+    if (!activeGroupId) return;
 
     try {
       const res = await fetch(`/api/groups/${activeGroupId}`, {
@@ -412,8 +414,14 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
       }
     } catch {
       // Ignore
+    } finally {
+      setDeleteGroupConfirm(false);
     }
   }, [activeGroupId, setActiveGroupId]);
+
+  const openDeleteGroupConfirm = useCallback(() => {
+    setDeleteGroupConfirm(true);
+  }, []);
 
   if (!activeGroupId) {
     return (
@@ -577,7 +585,7 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
 
               {isCreator && (
                 <button
-                  onClick={handleDeleteGroup}
+                  onClick={openDeleteGroupConfirm}
                   className="w-full px-4 py-2.5 bg-[var(--danger)]/10 text-[var(--danger)] text-sm font-medium rounded-lg hover:bg-[var(--danger)]/20 transition-colors duration-150 border border-[var(--danger)]/20"
                 >
                   Delete Group
@@ -714,6 +722,18 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
           }
         }
       `}</style>
+
+      {/* Delete Group Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteGroupConfirm}
+        title="Delete Group"
+        message="Are you sure you want to delete this group? All messages and members will be removed. This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={handleDeleteGroup}
+        onCancel={() => setDeleteGroupConfirm(false)}
+      />
     </div>
   );
 }

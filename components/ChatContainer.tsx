@@ -51,9 +51,9 @@ export default function ChatContainer({ userId }: ChatContainerProps) {
       {/* Sidebar */}
       <aside
         className={`
-          w-72 border-r border-[var(--border)] flex flex-col bg-[var(--background)] z-50
-          fixed inset-y-0 left-0 transition-transform duration-200
-          md:relative md:translate-x-0
+          ${activeView === "blog" ? "w-full" : "w-64"} lg:w-72 border-r border-[var(--border)] flex flex-col bg-[var(--background)] z-50
+          fixed inset-y-0 left-0 transition-all duration-300 ease-out
+          md:relative md:translate-x-0 ${activeView === "blog" ? "md:w-80 lg:w-96" : "md:w-64 lg:w-72"}
           ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
@@ -101,24 +101,36 @@ export default function ChatContainer({ userId }: ChatContainerProps) {
                 onSelectPost={(blogId) => {
                   // Set targetBlogId to scroll to post
                   useChatStore.getState().setTargetBlogId(blogId);
+                  // Close sidebar on mobile so user sees the post
+                  setMobileMenuOpen(false);
                 }}
+                onClose={() => setMobileMenuOpen(false)}
               />
             )}
           </ErrorBoundary>
         </div>
       </aside>
 
-      {/* Main content */}
+      {/* Main content - full screen on mobile for blog */}
       <main className={`flex-1 flex flex-col min-h-0 overflow-hidden ${!hasActiveConversation && activeView !== "blog" ? "mobile-hidden md:flex" : ""}`}>
-        {/* Header */}
-        <div className="shrink-0 p-3 border-b border-[var(--border)] bg-[var(--background)] flex items-center justify-between">
+        {/* Header - only show on mobile for blog view, always show on desktop */}
+        <div className={`shrink-0 p-3 border-b border-[var(--border)] bg-[var(--background)] flex items-center justify-between ${activeView !== "blog" ? "hidden md:flex" : ""}`}>
           <div className="flex items-center gap-3">
+            {/* Hamburger menu for mobile - only needed for blog */}
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="font-bold text-lg tracking-tight md:cursor-default hover:opacity-70 md:hover:opacity-100 transition-opacity"
+              className="md:hidden p-1.5 -ml-1 hover:bg-[var(--border)] rounded-lg transition-colors"
+              aria-label="Open menu"
             >
-              Chat
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
             </button>
+            <span className="font-bold text-lg tracking-tight">
+              {activeView === "blog" ? "Blog" : activeView === "groups" ? "Groups" : "Chat"}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             {currentUser && (
