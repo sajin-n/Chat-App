@@ -58,6 +58,9 @@ export default function DeveloperDashboard() {
     const [loadingReports, setLoadingReports] = useState(false);
     const [deleting, setDeleting] = useState<string | null>(null);
     const [reportFilter, setReportFilter] = useState<"all" | "pending" | "resolved">("all");
+    const [selectedCommentUser, setSelectedCommentUser] = useState<string | null>(null);
+    const [userSearchQuery, setUserSearchQuery] = useState("");
+    const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
 
     // Confirmation modal states
     const [deleteUserConfirm, setDeleteUserConfirm] = useState<{ isOpen: boolean; userId: string | null }>({
@@ -76,6 +79,27 @@ export default function DeveloperDashboard() {
         isOpen: false,
         reportId: null,
     });
+
+    const uniqueCommentAuthors = comments.reduce((acc, comment) => {
+        if (comment.author && !acc.find(a => a._id === comment.author!._id)) {
+            acc.push(comment.author);
+        }
+        return acc;
+    }, [] as { _id: string; username: string; email: string }[]);
+
+    const filteredAuthors = userSearchQuery
+        ? uniqueCommentAuthors.filter(author =>
+            author.username.toLowerCase().includes(userSearchQuery.toLowerCase())
+        )
+        : uniqueCommentAuthors;
+
+    const filteredComments = selectedCommentUser
+        ? comments.filter(c => c.author?._id === selectedCommentUser)
+        : comments;
+
+    const selectedAuthorName = selectedCommentUser
+        ? uniqueCommentAuthors.find(a => a._id === selectedCommentUser)?.username
+        : null;
 
     const fetchUsers = useCallback(async () => {
         try {
@@ -508,14 +532,142 @@ export default function DeveloperDashboard() {
 
                 {/* Comments Tab */}
                 {activeTab === "comments" && (
-                    <div className="bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden">
-                        <div className="p-4 border-b border-zinc-800">
-                            <h2 className="font-semibold flex items-center gap-2">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-                                </svg>
-                                All Comments ({comments.length})
-                            </h2>
+                    <div className="bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden flex flex-col">
+                        <div className="p-4 border-b border-zinc-800 space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h2 className="font-semibold flex items-center gap-2">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+                                    </svg>
+                                    Comments Review
+                                </h2>
+                                <span className="text-xs text-zinc-500 font-medium px-2 py-1 bg-zinc-800 rounded-lg">
+                                    {filteredComments.length} shown
+                                </span>
+                            </div>
+
+                            {/* User Filter Dropdown */}
+                            <div className="relative">
+                                <button
+                                    onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                                    className="w-full sm:w-64 px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-left text-sm transition-colors flex items-center justify-between gap-2"
+                                >
+                                    <span className="flex items-center gap-2 truncate">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                            <circle cx="12" cy="7" r="4" />
+                                        </svg>
+                                        <span className="font-medium text-zinc-200">
+                                            {selectedAuthorName || "All Users"}
+                                        </span>
+                                        {selectedCommentUser && (
+                                            <span className="text-xs text-zinc-500">
+                                                ({comments.filter(c => c.author?._id === selectedCommentUser).length})
+                                            </span>
+                                        )}
+                                    </span>
+                                    <svg
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        className={`text-zinc-400 transition-transform ${isUserDropdownOpen ? "rotate-180" : ""}`}
+                                    >
+                                        <polyline points="6 9 12 15 18 9" />
+                                    </svg>
+                                </button>
+
+                                {/* Dropdown Panel */}
+                                {isUserDropdownOpen && (
+                                    <>
+                                        {/* Backdrop */}
+                                        <div
+                                            className="fixed inset-0 z-40"
+                                            onClick={() => {
+                                                setIsUserDropdownOpen(false);
+                                                setUserSearchQuery("");
+                                            }}
+                                        />
+
+                                        {/* Dropdown Content */}
+                                        <div className="absolute top-full left-0 mt-2 w-full sm:w-80 bg-zinc-800 border border-zinc-700 rounded-xl shadow-2xl z-50 overflow-hidden">
+                                            {/* Search Input */}
+                                            <div className="p-3 border-b border-zinc-700">
+                                                <div className="relative">
+                                                    <svg
+                                                        className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500"
+                                                        viewBox="0 0 24 24"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        strokeWidth="2"
+                                                    >
+                                                        <circle cx="11" cy="11" r="8" />
+                                                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                                                    </svg>
+                                                    <input
+                                                        type="text"
+                                                        value={userSearchQuery}
+                                                        onChange={(e) => setUserSearchQuery(e.target.value)}
+                                                        placeholder="Search users..."
+                                                        className="w-full pl-10 pr-4 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-600 focus:border-transparent"
+                                                        autoFocus
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* User List */}
+                                            <div className="max-h-64 overflow-y-auto">
+                                                {/* All Users Option */}
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedCommentUser(null);
+                                                        setIsUserDropdownOpen(false);
+                                                        setUserSearchQuery("");
+                                                    }}
+                                                    className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center justify-between ${selectedCommentUser === null
+                                                            ? "bg-zinc-700 text-zinc-100"
+                                                            : "text-zinc-300 hover:bg-zinc-700/50"
+                                                        }`}
+                                                >
+                                                    <span className="font-medium">All Users</span>
+                                                    <span className="text-xs text-zinc-500 bg-zinc-900 px-2 py-0.5 rounded">
+                                                        {comments.length}
+                                                    </span>
+                                                </button>
+
+                                                {/* Filtered Users */}
+                                                {filteredAuthors.length > 0 ? (
+                                                    filteredAuthors.map((author) => (
+                                                        <button
+                                                            key={author._id}
+                                                            onClick={() => {
+                                                                setSelectedCommentUser(author._id);
+                                                                setIsUserDropdownOpen(false);
+                                                                setUserSearchQuery("");
+                                                            }}
+                                                            className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center justify-between ${selectedCommentUser === author._id
+                                                                    ? "bg-zinc-700 text-zinc-100"
+                                                                    : "text-zinc-300 hover:bg-zinc-700/50"
+                                                                }`}
+                                                        >
+                                                            <span className="truncate">{author.username}</span>
+                                                            <span className="text-xs text-zinc-500 bg-zinc-900 px-2 py-0.5 rounded flex-shrink-0 ml-2">
+                                                                {comments.filter(c => c.author?._id === author._id).length}
+                                                            </span>
+                                                        </button>
+                                                    ))
+                                                ) : (
+                                                    <div className="px-4 py-8 text-center text-sm text-zinc-500">
+                                                        No users found
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
                         </div>
 
                         <div className="max-h-[calc(100vh-280px)] overflow-y-auto">
@@ -527,49 +679,51 @@ export default function DeveloperDashboard() {
                                     </svg>
                                     Loading comments...
                                 </div>
-                            ) : comments.length === 0 ? (
+                            ) : filteredComments.length === 0 ? (
                                 <div className="p-12 text-center text-zinc-500">
                                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="mx-auto mb-4 opacity-50">
                                         <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
                                     </svg>
-                                    <p>No comments found</p>
+                                    <p>No comments found for this selection</p>
                                 </div>
                             ) : (
                                 <div className="divide-y divide-zinc-800">
-                                    {comments.map((comment) => (
-                                        <div key={comment._id} className="p-4">
+                                    {filteredComments.map((comment) => (
+                                        <div key={comment._id} className="p-4 hover:bg-zinc-800/20 transition-colors">
                                             <div className="flex justify-between items-start gap-4">
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2 mb-2">
                                                         {comment.author ? (
                                                             <>
-                                                                <span className="text-sm font-medium text-zinc-300">{comment.author.username}</span>
-                                                                <span className="text-xs text-zinc-500">•</span>
+                                                                <span className="text-sm font-medium text-zinc-200">{comment.author.username}</span>
+                                                                <span className="text-xs text-zinc-600">•</span>
                                                                 <span className="text-xs text-zinc-500">{formatDate(comment.createdAt)}</span>
                                                             </>
                                                         ) : (
                                                             <span className="text-sm text-zinc-500">[Deleted User]</span>
                                                         )}
                                                     </div>
-                                                    <p className="text-sm text-zinc-400 mb-2">{comment.content}</p>
+                                                    <p className="text-sm text-zinc-300 mb-2 leading-relaxed">{comment.content}</p>
                                                     {comment.blog && (
-                                                        <div className="mt-2 p-2 bg-zinc-800 rounded-lg text-xs text-zinc-500">
-                                                            Post: {comment.blog.content}
+                                                        <div className="mt-3 p-2.5 bg-zinc-800/50 border border-zinc-800 rounded-lg">
+                                                            <p className="text-xs text-zinc-500 uppercase tracking-wider font-medium mb-1">On Post:</p>
+                                                            <p className="text-xs text-zinc-400 line-clamp-2 italic">"{comment.blog.content}"</p>
                                                         </div>
                                                     )}
-                                                    <div className="flex items-center gap-3 mt-2 text-xs text-zinc-500">
-                                                        <span className="flex items-center gap-1">
-                                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                                                    <div className="flex items-center gap-3 mt-3 text-xs text-zinc-500">
+                                                        <span className="flex items-center gap-1.5 px-2 py-1 bg-zinc-800 rounded-md">
+                                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-pink-500">
                                                                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
                                                             </svg>
-                                                            {comment.likeCount}
+                                                            {comment.likeCount} Likes
                                                         </span>
                                                     </div>
                                                 </div>
                                                 <button
                                                     onClick={() => openDeleteCommentConfirm(comment._id)}
                                                     disabled={deleting === comment._id}
-                                                    className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50 flex-shrink-0"
+                                                    className="p-2 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all disabled:opacity-50 flex-shrink-0"
+                                                    title="Delete Comment"
                                                 >
                                                     {deleting === comment._id ? (
                                                         <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
@@ -577,9 +731,8 @@ export default function DeveloperDashboard() {
                                                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                                                         </svg>
                                                     ) : (
-                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                            <polyline points="3 6 5 6 21 6" />
-                                                            <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                            <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                         </svg>
                                                     )}
                                                 </button>
