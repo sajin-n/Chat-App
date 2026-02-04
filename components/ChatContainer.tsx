@@ -183,15 +183,15 @@ export default function ChatContainer({ userId }: ChatContainerProps) {
               <UserProfile userId={userId} onClose={() => setShowProfile(false)} />
             </div>
             <div className="p-4 border-t border-[var(--border)]">
-              <form action="/api/auth/signout" method="post">
-                <input type="hidden" name="callbackUrl" value="/login" />
-                <button
-                  type="submit"
-                  className="w-full btn btn-danger"
-                >
-                  Logout
-                </button>
-              </form>
+              <button
+                onClick={async () => {
+                  const { signOut } = await import("next-auth/react");
+                  await signOut({ callbackUrl: "/login", redirect: true });
+                }}
+                className="w-full btn btn-danger"
+              >
+                Logout
+              </button>
             </div>
           </div>
         </div>

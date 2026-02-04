@@ -2,6 +2,9 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import ChatContainer from "@/components/ChatContainer";
 
+// Force dynamic rendering to prevent caching issues with authentication
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   const session = await auth();
 
