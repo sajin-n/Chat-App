@@ -5,6 +5,7 @@ import Image from "next/image";
 import { CldUploadWidget } from "next-cloudinary";
 import { BlogPostSkeleton } from "@/components/Skeleton";
 import ReportModal from "@/components/ReportModal";
+import ConfirmModal from "@/components/ConfirmModal";
 import { useChatStore } from "@/lib/store";
 
 interface Blog {
@@ -60,6 +61,19 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
     isOpen: false,
     type: "post",
     id: "",
+  });
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; blogId: string | null }>({
+    isOpen: false,
+    blogId: null,
+  });
+  const [deleteCommentConfirm, setDeleteCommentConfirm] = useState<{
+    isOpen: boolean;
+    blogId: string | null;
+    commentId: string | null;
+  }>({
+    isOpen: false,
+    blogId: null,
+    commentId: null,
   });
   const blogRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const feedContainerRef = useRef<HTMLDivElement>(null);
@@ -203,8 +217,6 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
   }, []);
 
   const handleDeleteBlog = useCallback(async (blogId: string) => {
-    if (!confirm("Are you sure you want to delete this post?")) return;
-
     try {
       const res = await fetch(`/api/blogs/${blogId}`, {
         method: "DELETE",
@@ -218,12 +230,16 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
         console.log('Blog deleted successfully');
       } else {
         console.error('Failed to delete blog:', res.status, res.statusText);
-        alert('Failed to delete post. Please try again.');
       }
     } catch (error) {
       console.error('Error deleting blog:', error);
-      alert('Failed to delete post. Please try again.');
+    } finally {
+      setDeleteConfirm({ isOpen: false, blogId: null });
     }
+  }, []);
+
+  const openDeleteConfirm = useCallback((blogId: string) => {
+    setDeleteConfirm({ isOpen: true, blogId });
   }, []);
 
   const handleEditBlog = useCallback((blogId: string, currentContent: string) => {
@@ -317,8 +333,6 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
   }, []);
 
   const handleDeleteComment = useCallback(async (blogId: string, commentId: string) => {
-    if (!confirm("Delete this comment?")) return;
-
     try {
       const res = await fetch(`/api/blogs/${blogId}/comments/${commentId}`, {
         method: "DELETE",
@@ -328,8 +342,14 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
       }
     } catch {
       // Ignore
+    } finally {
+      setDeleteCommentConfirm({ isOpen: false, blogId: null, commentId: null });
     }
   }, [fetchBlogs]);
+
+  const openDeleteCommentConfirm = useCallback((blogId: string, commentId: string) => {
+    setDeleteCommentConfirm({ isOpen: true, blogId, commentId });
+  }, []);
 
   const toggleCommentMenu = useCallback((commentId: string, event: React.MouseEvent) => {
     event.stopPropagation();
@@ -736,7 +756,7 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
                                       e.preventDefault();
                                       e.stopPropagation();
                                       setOpenMenus({});
-                                      handleDeleteBlog(blog._id);
+                                      openDeleteConfirm(blog._id);
                                     }}
                                     className="w-full px-4 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors duration-150 flex items-center gap-2 font-medium"
                                   >
@@ -960,7 +980,7 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
                                               <button
                                                 onClick={() => {
                                                   setOpenCommentMenus({});
-                                                  handleDeleteComment(blog._id, comment._id);
+                                                  openDeleteCommentConfirm(blog._id, comment._id);
                                                 }}
                                                 className="w-full px-3 py-2 text-left text-xs hover:bg-red-50 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400 transition-colors font-medium flex items-center gap-2"
                                               >
@@ -1100,6 +1120,38 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
         reportedType={reportData.type}
         reportedId={reportData.id}
         reportedName={reportData.name}
+      />
+
+      {/* Delete Post Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteConfirm.isOpen}
+        title="Delete Post"
+        message="Are you sure you want to delete this post? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={() => {
+          if (deleteConfirm.blogId) {
+            handleDeleteBlog(deleteConfirm.blogId);
+          }
+        }}
+        onCancel={() => setDeleteConfirm({ isOpen: false, blogId: null })}
+      />
+
+      {/* Delete Comment Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteCommentConfirm.isOpen}
+        title="Delete Comment"
+        message="Are you sure you want to delete this comment?"
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={() => {
+          if (deleteCommentConfirm.blogId && deleteCommentConfirm.commentId) {
+            handleDeleteComment(deleteCommentConfirm.blogId, deleteCommentConfirm.commentId);
+          }
+        }}
+        onCancel={() => setDeleteCommentConfirm({ isOpen: false, blogId: null, commentId: null })}
       />
     </div>
   );

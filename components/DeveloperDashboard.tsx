@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { signOut } from "next-auth/react";
+import ConfirmModal from "@/components/ConfirmModal";
 
 interface User {
     _id: string;
@@ -57,6 +58,24 @@ export default function DeveloperDashboard() {
     const [loadingReports, setLoadingReports] = useState(false);
     const [deleting, setDeleting] = useState<string | null>(null);
     const [reportFilter, setReportFilter] = useState<"all" | "pending" | "resolved">("all");
+
+    // Confirmation modal states
+    const [deleteUserConfirm, setDeleteUserConfirm] = useState<{ isOpen: boolean; userId: string | null }>({
+        isOpen: false,
+        userId: null,
+    });
+    const [deletePostConfirm, setDeletePostConfirm] = useState<{ isOpen: boolean; postId: string | null }>({
+        isOpen: false,
+        postId: null,
+    });
+    const [deleteCommentConfirm, setDeleteCommentConfirm] = useState<{ isOpen: boolean; commentId: string | null }>({
+        isOpen: false,
+        commentId: null,
+    });
+    const [deleteReportConfirm, setDeleteReportConfirm] = useState<{ isOpen: boolean; reportId: string | null }>({
+        isOpen: false,
+        reportId: null,
+    });
 
     const fetchUsers = useCallback(async () => {
         try {
@@ -127,10 +146,6 @@ export default function DeveloperDashboard() {
     };
 
     const handleDeleteUser = async (userId: string) => {
-        if (!confirm("Are you sure you want to delete this user? This will delete all their posts, comments, and messages.")) {
-            return;
-        }
-
         setDeleting(userId);
         try {
             const res = await fetch(`/api/admin/users/${userId}`, { method: "DELETE" });
@@ -143,14 +158,15 @@ export default function DeveloperDashboard() {
             }
         } finally {
             setDeleting(null);
+            setDeleteUserConfirm({ isOpen: false, userId: null });
         }
     };
 
-    const handleDeletePost = async (postId: string) => {
-        if (!confirm("Are you sure you want to delete this post?")) {
-            return;
-        }
+    const openDeleteUserConfirm = (userId: string) => {
+        setDeleteUserConfirm({ isOpen: true, userId });
+    };
 
+    const handleDeletePost = async (postId: string) => {
         setDeleting(postId);
         try {
             const res = await fetch(`/api/admin/posts/${postId}`, { method: "DELETE" });
@@ -165,14 +181,15 @@ export default function DeveloperDashboard() {
             }
         } finally {
             setDeleting(null);
+            setDeletePostConfirm({ isOpen: false, postId: null });
         }
     };
 
-    const handleDeleteComment = async (commentId: string) => {
-        if (!confirm("Are you sure you want to delete this comment?")) {
-            return;
-        }
+    const openDeletePostConfirm = (postId: string) => {
+        setDeletePostConfirm({ isOpen: true, postId });
+    };
 
+    const handleDeleteComment = async (commentId: string) => {
         setDeleting(commentId);
         try {
             const res = await fetch(`/api/admin/comments/${commentId}`, { method: "DELETE" });
@@ -181,7 +198,12 @@ export default function DeveloperDashboard() {
             }
         } finally {
             setDeleting(null);
+            setDeleteCommentConfirm({ isOpen: false, commentId: null });
         }
+    };
+
+    const openDeleteCommentConfirm = (commentId: string) => {
+        setDeleteCommentConfirm({ isOpen: true, commentId });
     };
 
     const handleResolveReport = async (reportId: string) => {
@@ -203,10 +225,6 @@ export default function DeveloperDashboard() {
     };
 
     const handleDeleteReport = async (reportId: string) => {
-        if (!confirm("Are you sure you want to delete this report?")) {
-            return;
-        }
-
         setDeleting(reportId);
         try {
             const res = await fetch(`/api/admin/reports/${reportId}`, { method: "DELETE" });
@@ -215,7 +233,12 @@ export default function DeveloperDashboard() {
             }
         } finally {
             setDeleting(null);
+            setDeleteReportConfirm({ isOpen: false, reportId: null });
         }
+    };
+
+    const openDeleteReportConfirm = (reportId: string) => {
+        setDeleteReportConfirm({ isOpen: true, reportId });
     };
 
     const formatDate = (dateStr: string) => {
@@ -263,8 +286,8 @@ export default function DeveloperDashboard() {
                         <button
                             onClick={() => setActiveTab("users")}
                             className={`px-4 py-3 text-sm font-medium transition-colors relative ${activeTab === "users"
-                                    ? "text-white"
-                                    : "text-zinc-400 hover:text-zinc-300"
+                                ? "text-white"
+                                : "text-zinc-400 hover:text-zinc-300"
                                 }`}
                         >
                             Users & Posts
@@ -275,8 +298,8 @@ export default function DeveloperDashboard() {
                         <button
                             onClick={() => setActiveTab("comments")}
                             className={`px-4 py-3 text-sm font-medium transition-colors relative ${activeTab === "comments"
-                                    ? "text-white"
-                                    : "text-zinc-400 hover:text-zinc-300"
+                                ? "text-white"
+                                : "text-zinc-400 hover:text-zinc-300"
                                 }`}
                         >
                             Comments
@@ -287,8 +310,8 @@ export default function DeveloperDashboard() {
                         <button
                             onClick={() => setActiveTab("reports")}
                             className={`px-4 py-3 text-sm font-medium transition-colors relative ${activeTab === "reports"
-                                    ? "text-white"
-                                    : "text-zinc-400 hover:text-zinc-300"
+                                ? "text-white"
+                                : "text-zinc-400 hover:text-zinc-300"
                                 }`}
                         >
                             Reports
@@ -368,7 +391,7 @@ export default function DeveloperDashboard() {
                                                         <button
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                handleDeleteUser(user._id);
+                                                                openDeleteUserConfirm(user._id);
                                                             }}
                                                             disabled={deleting === user._id}
                                                             className="p-1.5 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50"
@@ -456,7 +479,7 @@ export default function DeveloperDashboard() {
                                                             </div>
                                                         </div>
                                                         <button
-                                                            onClick={() => handleDeletePost(post._id)}
+                                                            onClick={() => openDeletePostConfirm(post._id)}
                                                             disabled={deleting === post._id}
                                                             className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50 flex-shrink-0"
                                                         >
@@ -544,7 +567,7 @@ export default function DeveloperDashboard() {
                                                     </div>
                                                 </div>
                                                 <button
-                                                    onClick={() => handleDeleteComment(comment._id)}
+                                                    onClick={() => openDeleteCommentConfirm(comment._id)}
                                                     disabled={deleting === comment._id}
                                                     className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50 flex-shrink-0"
                                                 >
@@ -580,8 +603,8 @@ export default function DeveloperDashboard() {
                                         key={filter}
                                         onClick={() => setReportFilter(filter)}
                                         className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${reportFilter === filter
-                                                ? "bg-purple-500 text-white"
-                                                : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                                            ? "bg-purple-500 text-white"
+                                            : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
                                             }`}
                                     >
                                         {filter.charAt(0).toUpperCase() + filter.slice(1)}
@@ -631,16 +654,16 @@ export default function DeveloperDashboard() {
                                                     <div className="flex-1 min-w-0">
                                                         <div className="flex items-center gap-2 mb-2">
                                                             <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${report.reportedType === "user"
-                                                                    ? "bg-blue-500/20 text-blue-400"
-                                                                    : report.reportedType === "post"
-                                                                        ? "bg-purple-500/20 text-purple-400"
-                                                                        : "bg-green-500/20 text-green-400"
+                                                                ? "bg-blue-500/20 text-blue-400"
+                                                                : report.reportedType === "post"
+                                                                    ? "bg-purple-500/20 text-purple-400"
+                                                                    : "bg-green-500/20 text-green-400"
                                                                 }`}>
                                                                 {report.reportedType.toUpperCase()}
                                                             </span>
                                                             <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${report.status === "pending"
-                                                                    ? "bg-yellow-500/20 text-yellow-400"
-                                                                    : "bg-zinc-700 text-zinc-400"
+                                                                ? "bg-yellow-500/20 text-yellow-400"
+                                                                : "bg-zinc-700 text-zinc-400"
                                                                 }`}>
                                                                 {report.status.toUpperCase()}
                                                             </span>
@@ -689,7 +712,7 @@ export default function DeveloperDashboard() {
                                                             </button>
                                                         )}
                                                         <button
-                                                            onClick={() => handleDeleteReport(report._id)}
+                                                            onClick={() => openDeleteReportConfirm(report._id)}
                                                             disabled={deleting === report._id}
                                                             className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50"
                                                             title="Delete report"
@@ -737,6 +760,67 @@ export default function DeveloperDashboard() {
                     </div>
                 )}
             </div>
+
+            {/* Confirmation Modals */}
+            <ConfirmModal
+                isOpen={deleteUserConfirm.isOpen}
+                title="Delete User"
+                message="Are you sure you want to delete this user? This will delete all their posts, comments, and messages."
+                confirmText="Delete User"
+                cancelText="Cancel"
+                variant="danger"
+                onConfirm={() => {
+                    if (deleteUserConfirm.userId) {
+                        handleDeleteUser(deleteUserConfirm.userId);
+                    }
+                }}
+                onCancel={() => setDeleteUserConfirm({ isOpen: false, userId: null })}
+            />
+
+            <ConfirmModal
+                isOpen={deletePostConfirm.isOpen}
+                title="Delete Post"
+                message="Are you sure you want to delete this post?"
+                confirmText="Delete"
+                cancelText="Cancel"
+                variant="danger"
+                onConfirm={() => {
+                    if (deletePostConfirm.postId) {
+                        handleDeletePost(deletePostConfirm.postId);
+                    }
+                }}
+                onCancel={() => setDeletePostConfirm({ isOpen: false, postId: null })}
+            />
+
+            <ConfirmModal
+                isOpen={deleteCommentConfirm.isOpen}
+                title="Delete Comment"
+                message="Are you sure you want to delete this comment?"
+                confirmText="Delete"
+                cancelText="Cancel"
+                variant="danger"
+                onConfirm={() => {
+                    if (deleteCommentConfirm.commentId) {
+                        handleDeleteComment(deleteCommentConfirm.commentId);
+                    }
+                }}
+                onCancel={() => setDeleteCommentConfirm({ isOpen: false, commentId: null })}
+            />
+
+            <ConfirmModal
+                isOpen={deleteReportConfirm.isOpen}
+                title="Delete Report"
+                message="Are you sure you want to delete this report?"
+                confirmText="Delete"
+                cancelText="Cancel"
+                variant="danger"
+                onConfirm={() => {
+                    if (deleteReportConfirm.reportId) {
+                        handleDeleteReport(deleteReportConfirm.reportId);
+                    }
+                }}
+                onCancel={() => setDeleteReportConfirm({ isOpen: false, reportId: null })}
+            />
         </div>
     );
 }

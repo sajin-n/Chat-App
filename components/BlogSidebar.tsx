@@ -19,9 +19,10 @@ interface BlogSidebarProps {
     userId: string;
     onSelectPost?: (blogId: string) => void;
     onSelectUser?: (userId: string) => void;
+    onClose?: () => void;
 }
 
-export default function BlogSidebar({ userId, onSelectPost, onSelectUser }: BlogSidebarProps) {
+export default function BlogSidebar({ userId, onSelectPost, onSelectUser, onClose }: BlogSidebarProps) {
     const [searchQuery, setSearchQuery] = useState("");
     const [searchType, setSearchType] = useState<"posts" | "users">("posts");
     const [searchResults, setSearchResults] = useState<{ users: User[]; blogs: Blog[] }>({ users: [], blogs: [] });
@@ -117,24 +118,38 @@ export default function BlogSidebar({ userId, onSelectPost, onSelectUser }: Blog
         <div className="flex flex-col h-full bg-white dark:bg-zinc-900">
             {/* Search Header */}
             <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 space-y-3">
-                <div className="relative">
-                    <svg
-                        className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                    >
-                        <circle cx="11" cy="11" r="8" />
-                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                    </svg>
-                    <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder={searchType === "posts" ? "Search posts..." : "Search users..."}
-                        className="w-full pl-10 pr-4 py-2.5 bg-zinc-100 dark:bg-zinc-800 border-0 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-zinc-300 dark:focus:ring-zinc-600 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
-                    />
+                <div className="relative flex items-center gap-2">
+                    <div className="relative flex-1">
+                        <svg
+                            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                        >
+                            <circle cx="11" cy="11" r="8" />
+                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                        </svg>
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder={searchType === "posts" ? "Search posts..." : "Search users..."}
+                            className="w-full pl-10 pr-4 py-2.5 bg-zinc-100 dark:bg-zinc-800 border-0 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-zinc-300 dark:focus:ring-zinc-600 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
+                        />
+                    </div>
+                    {/* Close button for mobile */}
+                    {onClose && (
+                        <button
+                            onClick={onClose}
+                            className="md:hidden flex-shrink-0 w-10 h-10 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-xl transition-colors"
+                            aria-label="Close sidebar"
+                        >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="9 18 15 12 9 6" />
+                            </svg>
+                        </button>
+                    )}
                 </div>
 
                 {/* Search Type Toggle */}
@@ -142,8 +157,8 @@ export default function BlogSidebar({ userId, onSelectPost, onSelectUser }: Blog
                     <button
                         onClick={() => setSearchType("posts")}
                         className={`flex-1 py-2 text-xs font-medium rounded-lg transition-all ${searchType === "posts"
-                                ? "bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100"
-                                : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300"
+                            ? "bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100"
+                            : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300"
                             }`}
                     >
                         <span className="flex items-center justify-center gap-1.5">
@@ -157,8 +172,8 @@ export default function BlogSidebar({ userId, onSelectPost, onSelectUser }: Blog
                     <button
                         onClick={() => setSearchType("users")}
                         className={`flex-1 py-2 text-xs font-medium rounded-lg transition-all ${searchType === "users"
-                                ? "bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100"
-                                : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300"
+                            ? "bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100"
+                            : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300"
                             }`}
                     >
                         <span className="flex items-center justify-center gap-1.5">
@@ -316,6 +331,6 @@ export default function BlogSidebar({ userId, onSelectPost, onSelectUser }: Blog
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 }

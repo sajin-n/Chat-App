@@ -5,6 +5,7 @@ import Image from "next/image";
 import { CldUploadWidget, CloudinaryUploadWidgetResults } from "next-cloudinary";
 import { useChatStore } from "@/lib/store";
 import ReportModal from "@/components/ReportModal";
+import ConfirmModal from "@/components/ConfirmModal";
 
 type MessageStatus = "sending" | "sent" | "failed";
 
@@ -199,6 +200,8 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
+  const [clearChatConfirm, setClearChatConfirm] = useState(false);
+  const [deleteChatConfirm, setDeleteChatConfirm] = useState(false);
 
   const getOtherParticipant = useCallback(() => {
     return chat?.participants.find((p) => p._id !== userId);
@@ -353,7 +356,7 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
   }, [activeChatId]);
 
   const handleClearChat = useCallback(async () => {
-    if (!activeChatId || !confirm("Clear all messages?")) return;
+    if (!activeChatId) return;
 
     try {
       const res = await fetch(`/api/chats/${activeChatId}/clear`, {
@@ -365,11 +368,18 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
       }
     } catch {
       // Ignore
+    } finally {
+      setClearChatConfirm(false);
     }
   }, [activeChatId]);
 
+  const openClearChatConfirm = useCallback(() => {
+    setShowMenu(false);
+    setClearChatConfirm(true);
+  }, []);
+
   const handleDeleteChat = useCallback(async () => {
-    if (!activeChatId || !confirm("Delete this conversation?")) return;
+    if (!activeChatId) return;
 
     try {
       const res = await fetch(`/api/chats/${activeChatId}`, {
@@ -380,8 +390,15 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
       }
     } catch {
       // Ignore
+    } finally {
+      setDeleteChatConfirm(false);
     }
   }, [activeChatId, setActiveChatId]);
+
+  const openDeleteChatConfirm = useCallback(() => {
+    setShowMenu(false);
+    setDeleteChatConfirm(true);
+  }, []);
 
   const handleSend = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -720,7 +737,7 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
             </div>
             <div className="p-1 space-y-0.5">
               <button
-                onClick={handleClearChat}
+                onClick={openClearChatConfirm}
                 className="w-full px-3 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg transition-colors flex items-center gap-3 text-sm text-zinc-700 dark:text-zinc-300 font-medium"
               >
                 <div className="w-7 h-7 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
@@ -729,7 +746,7 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
                 Clear Chat
               </button>
               <button
-                onClick={handleDeleteChat}
+                onClick={openDeleteChatConfirm}
                 className="w-full px-3 py-2.5 text-left hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors flex items-center gap-3 text-sm text-red-600 dark:text-red-400 font-medium"
               >
                 <div className="w-7 h-7 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
@@ -772,6 +789,30 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
         reportedType="user"
         reportedId={otherUser?._id || ""}
         reportedName={otherUser?.username}
+      />
+
+      {/* Clear Chat Confirmation Modal */}
+      <ConfirmModal
+        isOpen={clearChatConfirm}
+        title="Clear Chat"
+        message="Are you sure you want to clear all messages? This action cannot be undone."
+        confirmText="Clear"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={handleClearChat}
+        onCancel={() => setClearChatConfirm(false)}
+      />
+
+      {/* Delete Chat Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteChatConfirm}
+        title="Delete Conversation"
+        message="Are you sure you want to delete this conversation? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={handleDeleteChat}
+        onCancel={() => setDeleteChatConfirm(false)}
       />
     </div>
   );

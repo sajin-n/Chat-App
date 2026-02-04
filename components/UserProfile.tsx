@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { CldUploadWidget } from "next-cloudinary";
 import { ProfilePageSkeleton } from "@/components/Skeleton";
+import ConfirmModal from "@/components/ConfirmModal";
 import { signIn, signOut } from "next-auth/react";
 import { useChatStore } from "@/lib/store";
 
@@ -47,6 +48,11 @@ export default function UserProfile({ userId, onClose }: UserProfileProps) {
   const [saving, setSaving] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const [deleteBlogConfirm, setDeleteBlogConfirm] = useState<{ isOpen: boolean; blogId: string | null }>({
+    isOpen: false,
+    blogId: null,
+  });
+  const [deleteAccountConfirm, setDeleteAccountConfirm] = useState(false);
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -122,8 +128,6 @@ export default function UserProfile({ userId, onClose }: UserProfileProps) {
   }, []);
 
   const handleDeleteBlog = useCallback(async (blogId: string) => {
-    if (!confirm("Delete this blog?")) return;
-
     try {
       const res = await fetch(`/api/blogs/${blogId}`, { method: "DELETE" });
       if (res.ok) {
@@ -131,22 +135,25 @@ export default function UserProfile({ userId, onClose }: UserProfileProps) {
       }
     } catch {
       // Ignore
+    } finally {
+      setDeleteBlogConfirm({ isOpen: false, blogId: null });
     }
   }, []);
 
-  const handleDeleteAccount = useCallback(async () => {
-    if (!confirm("Are you sure you want to delete your account? This action cannot be undone.")) return;
+  const openDeleteBlogConfirm = useCallback((blogId: string) => {
+    setDeleteBlogConfirm({ isOpen: true, blogId });
+  }, []);
 
+  const handleDeleteAccount = useCallback(async () => {
     try {
       const res = await fetch("/api/users/me", { method: "DELETE" });
       if (res.ok) {
         await signOut({ callbackUrl: "/login" });
-      } else {
-        alert("Failed to delete account. Please try again.");
       }
     } catch (error) {
       console.error("Failed to delete account:", error);
-      alert("An error occurred.");
+    } finally {
+      setDeleteAccountConfirm(false);
     }
   }, []);
 
@@ -200,7 +207,7 @@ export default function UserProfile({ userId, onClose }: UserProfileProps) {
                 </button>
                 <button
                   onClick={() => {
-                    handleDeleteAccount();
+                    setDeleteAccountConfirm(true);
                     setShowMenu(false);
                   }}
                   className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors flex items-center gap-2"
@@ -336,7 +343,7 @@ export default function UserProfile({ userId, onClose }: UserProfileProps) {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDeleteBlog(blog._id);
+                        openDeleteBlogConfirm(blog._id);
                       }}
                       className="text-zinc-600 hover:text-red-400 p-1.5 rounded-md hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
                       title="Delete Post"
@@ -377,6 +384,34 @@ export default function UserProfile({ userId, onClose }: UserProfileProps) {
           )}
         </div>
       </div>
+
+      {/* Delete Blog Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteBlogConfirm.isOpen}
+        title="Delete Post"
+        message="Are you sure you want to delete this post?"
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={() => {
+          if (deleteBlogConfirm.blogId) {
+            handleDeleteBlog(deleteBlogConfirm.blogId);
+          }
+        }}
+        onCancel={() => setDeleteBlogConfirm({ isOpen: false, blogId: null })}
+      />
+
+      {/* Delete Account Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteAccountConfirm}
+        title="Delete Account"
+        message="Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently removed."
+        confirmText="Delete Account"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={handleDeleteAccount}
+        onCancel={() => setDeleteAccountConfirm(false)}
+      />
     </div>
   );
 }
