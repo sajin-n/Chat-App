@@ -284,7 +284,7 @@ export default function DeveloperDashboard() {
             <header className="border-b border-zinc-800 bg-zinc-900/50 backdrop-blur-sm sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-linear-to-br from-purple-500 to-pink-500 flex items-center justify-center">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
                                 <path d="M12 2L2 7l10 5 10-5-10-5z" />
                                 <path d="M2 17l10 5 10-5" />
@@ -396,7 +396,7 @@ export default function DeveloperDashboard() {
                                             >
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-zinc-600 to-zinc-700 flex items-center justify-center overflow-hidden">
+                                                        <div className="w-10 h-10 rounded-full bg-linear-to-br from-zinc-600 to-zinc-700 flex items-center justify-center overflow-hidden">
                                                             {user.profilePicture ? (
                                                                 <img src={user.profilePicture} alt="" className="w-full h-full object-cover" />
                                                             ) : (
@@ -419,6 +419,7 @@ export default function DeveloperDashboard() {
                                                             }}
                                                             disabled={deleting === user._id}
                                                             className="p-1.5 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50"
+                                                            title="Delete user"
                                                         >
                                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                                 <polyline points="3 6 5 6 21 6" />
@@ -478,7 +479,7 @@ export default function DeveloperDashboard() {
                                                 <div key={post._id} className="p-4">
                                                     <div className="flex justify-between items-start gap-4">
                                                         <div className="flex-1 min-w-0">
-                                                            <p className="text-sm text-zinc-300 whitespace-pre-wrap break-words">
+                                                            <p className="text-sm text-zinc-300 whitespace-pre-wrap wrap-break-word">
                                                                 {post.content}
                                                             </p>
                                                             {post.imageUrl && (
@@ -505,7 +506,7 @@ export default function DeveloperDashboard() {
                                                         <button
                                                             onClick={() => openDeletePostConfirm(post._id)}
                                                             disabled={deleting === post._id}
-                                                            className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50 flex-shrink-0"
+                                                            className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50 shrink-0"
                                                         >
                                                             {deleting === post._id ? (
                                                                 <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
@@ -653,7 +654,7 @@ export default function DeveloperDashboard() {
                                                                 }`}
                                                         >
                                                             <span className="truncate">{author.username}</span>
-                                                            <span className="text-xs text-zinc-500 bg-zinc-900 px-2 py-0.5 rounded flex-shrink-0 ml-2">
+                                                            <span className="text-xs text-zinc-500 bg-zinc-900 px-2 py-0.5 rounded shrink-0 ml-2">
                                                                 {comments.filter(c => c.author?._id === author._id).length}
                                                             </span>
                                                         </button>
@@ -722,7 +723,7 @@ export default function DeveloperDashboard() {
                                                 <button
                                                     onClick={() => openDeleteCommentConfirm(comment._id)}
                                                     disabled={deleting === comment._id}
-                                                    className="p-2 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all disabled:opacity-50 flex-shrink-0"
+                                                    className="p-2 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all disabled:opacity-50 shrink-0"
                                                     title="Delete Comment"
                                                 >
                                                     {deleting === comment._id ? (
@@ -851,7 +852,7 @@ export default function DeveloperDashboard() {
                                                         </div>
                                                     </div>
 
-                                                    <div className="flex gap-2 flex-shrink-0">
+                                                    <div className="flex gap-2 shrink-0">
                                                         {report.status === "pending" && (
                                                             <button
                                                                 onClick={() => handleResolveReport(report._id)}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
-import { CldUploadWidget } from "next-cloudinary";
+import { CldUploadWidget, CloudinaryUploadWidgetResults } from "next-cloudinary";
 import { BlogPostSkeleton } from "@/components/Skeleton";
 import ReportModal from "@/components/ReportModal";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -516,7 +516,7 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
         }
 
         .post-card:hover {
-          transform: translateY(-4px);
+          transform: translateY(-2px);
         }
 
         .icon-button {
@@ -544,16 +544,16 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
           pointerEvents: isHeaderHidden ? 'none' : 'auto',
         }}
       >
-        <div className="border-b border-zinc-200/50 dark:border-zinc-800/50 bg-gradient-to-b from-white via-white to-zinc-50/90 dark:from-zinc-900 dark:via-zinc-900 dark:to-zinc-950/90 backdrop-blur-xl shadow-lg">
+        <div className="border-b border-zinc-200/50 dark:border-zinc-800/50 bg-linear-to-b from-white via-white to-zinc-50/90 dark:from-zinc-900 dark:via-zinc-900 dark:to-zinc-950/90 backdrop-blur-xl shadow-lg">
           <div className="max-w-2xl mx-auto w-full p-4">
             <form onSubmit={handlePostBlog} className="space-y-3">
               <div className="relative group">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-zinc-300 via-zinc-200 to-zinc-300 dark:from-zinc-600 dark:via-zinc-500 dark:to-zinc-600 rounded-2xl blur opacity-0 group-focus-within:opacity-60 transition duration-500"></div>
+                <div className="absolute -inset-0.5 bg-linear-to-r from-zinc-300 via-zinc-200 to-zinc-300 dark:from-zinc-600 dark:via-zinc-500 dark:to-zinc-600 rounded-2xl blur opacity-0 group-focus-within:opacity-60 transition duration-500"></div>
                 <textarea
                   value={newBlogContent}
                   onChange={(e) => setNewBlogContent(e.target.value)}
                   placeholder="Share your thoughts..."
-                  className="relative w-full p-4 border-0 rounded-2xl bg-gradient-to-br from-zinc-50 to-white dark:from-zinc-800 dark:to-zinc-900 text-[var(--foreground)] resize-none focus:outline-none ring-1 ring-zinc-200 dark:ring-zinc-700 focus:ring-2 focus:ring-zinc-400 dark:focus:ring-zinc-500 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500 shadow-inner"
+                  className="relative w-full p-4 border-0 rounded-2xl bg-linear-to-br from-zinc-50 to-white dark:from-zinc-800 dark:to-zinc-900 text-foreground resize-none focus:outline-none ring-1 ring-zinc-200 dark:ring-zinc-700 focus:ring-2 focus:ring-zinc-400 dark:focus:ring-zinc-500 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500 shadow-inner"
                   rows={3}
                 />
               </div>
@@ -583,7 +583,7 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
                   {process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME && (
                     <CldUploadWidget
                       uploadPreset="giga_chat"
-                      onSuccess={(result: any) => {
+                      onSuccess={(result: CloudinaryUploadWidgetResults) => {
                         if (result?.info && typeof result.info === "object" && "secure_url" in result.info && "public_id" in result.info) {
                           setNewBlogImage({
                             url: result.info.secure_url as string,
@@ -694,7 +694,7 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
                               className="w-11 h-11 rounded-full object-cover ring-2 ring-zinc-100 dark:ring-zinc-800"
                             />
                           ) : (
-                            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-zinc-800 to-zinc-600 dark:from-zinc-200 dark:to-zinc-400 flex items-center justify-center text-white dark:text-zinc-900 font-bold text-lg ring-2 ring-zinc-100 dark:ring-zinc-800">
+                            <div className="w-11 h-11 rounded-full bg-linear-to-br from-zinc-800 to-zinc-600 dark:from-zinc-200 dark:to-zinc-400 flex items-center justify-center text-white dark:text-zinc-900 font-bold text-lg ring-2 ring-zinc-100 dark:ring-zinc-800">
                               {blog.authorId.username[0]?.toUpperCase()}
                             </div>
                           )}
@@ -730,7 +730,7 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
                         {openMenus[blog._id] && (
                           <>
                             <div className="fixed inset-0 z-40" onClick={() => setOpenMenus({})}></div>
-                            <div className="menu-dropdown absolute right-0 top-full mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xl py-1 z-50 min-w-[140px] animate-slide-down overflow-hidden">
+                            <div className="menu-dropdown absolute right-0 top-full mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xl py-1 z-50 min-w-35 animate-slide-down overflow-hidden">
                               {isAuthor ? (
                                 <>
                                   <button
@@ -827,7 +827,7 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
                         <textarea
                           value={editingContent}
                           onChange={(e) => setEditingContent(e.target.value)}
-                          className="w-full p-4 border border-zinc-300 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-900 text-[var(--foreground)] resize-none focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all shadow-sm"
+                          className="w-full p-4 border border-zinc-300 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-900 text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100 focus:border-transparent transition-all shadow-sm"
                           rows={4}
                           placeholder="What's on your mind?"
                           autoFocus
@@ -867,7 +867,7 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
                             height={400}
                             className="w-full max-h-96 object-cover transition-transform duration-300 group-hover:scale-105"
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                          <div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         </div>
                       </div>
                     )}
@@ -933,15 +933,15 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
                                 alt={comment.authorId.username}
                                 width={32}
                                 height={32}
-                                className="w-8 h-8 rounded-full object-cover flex-shrink-0 ring-2 ring-zinc-100 dark:ring-zinc-800"
+                                className="w-8 h-8 rounded-full object-cover shrink-0 ring-2 ring-zinc-100 dark:ring-zinc-800"
                               />
                             ) : (
-                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-500 dark:from-zinc-300 dark:to-zinc-500 flex items-center justify-center text-xs text-white dark:text-zinc-900 font-bold flex-shrink-0 ring-2 ring-zinc-100 dark:ring-zinc-800">
+                              <div className="w-8 h-8 rounded-full bg-linear-to-br from-zinc-700 to-zinc-500 dark:from-zinc-300 dark:to-zinc-500 flex items-center justify-center text-xs text-white dark:text-zinc-900 font-bold shrink-0 ring-2 ring-zinc-100 dark:ring-zinc-800">
                                 {comment.authorId.username[0]?.toUpperCase()}
                               </div>
                             )}
                             <div className="flex-1 min-w-0">
-                              <div className="bg-gradient-to-br from-zinc-50 to-zinc-100/50 dark:from-zinc-800/50 dark:to-zinc-800/30 rounded-2xl p-3 relative group hover:from-zinc-100 hover:to-zinc-50 dark:hover:from-zinc-800 dark:hover:to-zinc-800/50 transition-all duration-200 border border-zinc-200/50 dark:border-zinc-700/50">
+                              <div className="bg-linear-to-br from-zinc-50 to-zinc-100/50 dark:from-zinc-800/50 dark:to-zinc-800/30 rounded-2xl p-3 relative group hover:from-zinc-100 hover:to-zinc-50 dark:hover:from-zinc-800 dark:hover:to-zinc-800/50 transition-all duration-200 border border-zinc-200/50 dark:border-zinc-700/50">
                                 <div className="flex items-start justify-between mb-1">
                                   <p className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">
                                     {comment.authorId.username}
@@ -963,7 +963,7 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
                                           </svg>
                                         </button>
                                         {openCommentMenus[comment._id] && (
-                                          <div className="menu-dropdown absolute right-0 top-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-xl py-1 z-20 min-w-[100px] animate-slide-down">
+                                          <div className="menu-dropdown absolute right-0 top-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-xl py-1 z-20 min-w-25 animate-slide-down">
                                             {isCommentAuthor && (
                                               <button
                                                 onClick={() => handleEditComment(comment._id, comment.content)}
@@ -1063,7 +1063,7 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
                                     </div>
                                   </div>
                                 ) : (
-                                  <p className="text-sm break-words text-zinc-700 dark:text-zinc-300 leading-relaxed">
+                                  <p className="text-sm wrap-break-word text-zinc-700 dark:text-zinc-300 leading-relaxed">
                                     {comment.content}
                                   </p>
                                 )}
@@ -1074,7 +1074,7 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
 
                         {/* Add Comment */}
                         <div className="flex gap-3 pt-3 mt-2 border-t border-zinc-100 dark:border-zinc-800">
-                          <div className="w-8 h-8 bg-gradient-to-br from-zinc-800 to-zinc-600 dark:from-zinc-200 dark:to-zinc-400 rounded-full flex items-center justify-center text-xs text-white dark:text-zinc-900 font-bold flex-shrink-0 ring-2 ring-zinc-100 dark:ring-zinc-800">
+                          <div className="w-8 h-8 bg-linear-to-br from-zinc-800 to-zinc-600 dark:from-zinc-200 dark:to-zinc-400 rounded-full flex items-center justify-center text-xs text-white dark:text-zinc-900 font-bold shrink-0 ring-2 ring-zinc-100 dark:ring-zinc-800">
                             {currentUser?.username?.[0]?.toUpperCase() || "U"}
                           </div>
                           <div className="flex-1 flex gap-2 min-w-0">

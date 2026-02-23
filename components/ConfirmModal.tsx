@@ -47,7 +47,7 @@ export default function ConfirmModal({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
             {/* Backdrop */}
             <div
                 className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
@@ -56,7 +56,7 @@ export default function ConfirmModal({
 
             {/* Modal */}
             <div
-                className="relative w-full max-w-sm bg-gradient-to-b from-white to-zinc-50 dark:from-zinc-900 dark:to-zinc-950 rounded-2xl shadow-2xl border border-zinc-200/50 dark:border-zinc-800/50 overflow-hidden animate-modal-in"
+                className="relative w-full max-w-sm bg-linear-to-b from-white to-zinc-50 dark:from-zinc-900 dark:to-zinc-950 rounded-2xl shadow-2xl border border-zinc-200/50 dark:border-zinc-800/50 overflow-hidden animate-modal-in"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
