@@ -117,7 +117,7 @@ export default function BlogSidebar({ userId, onSelectPost, onSelectUser, onClos
     return (
         <div className="flex flex-col h-full bg-white dark:bg-zinc-900">
             {/* Search Header */}
-            <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 space-y-3">
+            <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 space-y-3 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm">
                 <div className="relative flex items-center gap-2">
                     <div className="relative flex-1">
                         <svg
@@ -135,14 +135,14 @@ export default function BlogSidebar({ userId, onSelectPost, onSelectUser, onClos
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder={searchType === "posts" ? "Search posts..." : "Search users..."}
-                            className="w-full pl-10 pr-4 py-2.5 bg-zinc-100 dark:bg-zinc-800 border-0 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-zinc-300 dark:focus:ring-zinc-600 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
+                            className="w-full pl-10 pr-4 py-2.5 bg-zinc-100 dark:bg-zinc-800 border-0 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
                         />
                     </div>
                     {/* Close button for mobile */}
                     {onClose && (
                         <button
                             onClick={onClose}
-                            className="md:hidden flex-shrink-0 w-10 h-10 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-xl transition-colors"
+                            className="md:hidden shrink-0 w-10 h-10 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-xl transition-colors"
                             aria-label="Close sidebar"
                         >
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -156,8 +156,8 @@ export default function BlogSidebar({ userId, onSelectPost, onSelectUser, onClos
                 <div className="flex gap-1 p-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl">
                     <button
                         onClick={() => setSearchType("posts")}
-                        className={`flex-1 py-2 text-xs font-medium rounded-lg transition-all ${searchType === "posts"
-                            ? "bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100"
+                        className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all duration-200 ${searchType === "posts"
+                            ? "bg-white dark:bg-zinc-700 shadow-sm text-blue-600 dark:text-blue-400"
                             : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300"
                             }`}
                     >
@@ -171,8 +171,8 @@ export default function BlogSidebar({ userId, onSelectPost, onSelectUser, onClos
                     </button>
                     <button
                         onClick={() => setSearchType("users")}
-                        className={`flex-1 py-2 text-xs font-medium rounded-lg transition-all ${searchType === "users"
-                            ? "bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-zinc-100"
+                        className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all duration-200 ${searchType === "users"
+                            ? "bg-white dark:bg-zinc-700 shadow-sm text-blue-600 dark:text-blue-400"
                             : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300"
                             }`}
                     >
@@ -208,7 +208,7 @@ export default function BlogSidebar({ userId, onSelectPost, onSelectUser, onClos
                                     onClick={() => onSelectUser?.(user._id)}
                                     className="w-full px-4 py-3 flex items-center gap-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
                                 >
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-zinc-200 to-zinc-300 dark:from-zinc-700 dark:to-zinc-600 flex items-center justify-center overflow-hidden">
+                                    <div className="w-10 h-10 rounded-full bg-linear-to-br from-zinc-200 to-zinc-300 dark:from-zinc-700 dark:to-zinc-600 flex items-center justify-center overflow-hidden">
                                         {user.profilePicture ? (
                                             <img src={user.profilePicture} alt="" className="w-full h-full object-cover" />
                                         ) : (
@@ -264,7 +264,11 @@ export default function BlogSidebar({ userId, onSelectPost, onSelectUser, onClos
                         {/* Trending Posts */}
                         {trendingPosts.length > 0 && (
                             <div className="mb-4">
-                                <h3 className="px-4 py-2 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                                <h3 className="px-4 py-2.5 text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider flex items-center gap-2">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                                      <polyline points="14 2 14 8 20 8" />
+                                    </svg>
                                     Recent Posts
                                 </h3>
                                 {trendingPosts.map((blog) => (
@@ -291,7 +295,11 @@ export default function BlogSidebar({ userId, onSelectPost, onSelectUser, onClos
                         {/* Recent Users */}
                         {recentUsers.length > 0 && (
                             <div>
-                                <h3 className="px-4 py-2 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                                <h3 className="px-4 py-2.5 text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider flex items-center gap-2">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                      <circle cx="12" cy="7" r="4" />
+                                    </svg>
                                     People to Follow
                                 </h3>
                                 {recentUsers.filter(u => u._id !== userId).slice(0, 4).map((user) => (
@@ -300,7 +308,7 @@ export default function BlogSidebar({ userId, onSelectPost, onSelectUser, onClos
                                         onClick={() => onSelectUser?.(user._id)}
                                         className="w-full px-4 py-3 flex items-center gap-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
                                     >
-                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-zinc-200 to-zinc-300 dark:from-zinc-700 dark:to-zinc-600 flex items-center justify-center overflow-hidden">
+                                        <div className="w-10 h-10 rounded-full bg-linear-to-br from-zinc-200 to-zinc-300 dark:from-zinc-700 dark:to-zinc-600 flex items-center justify-center overflow-hidden">
                                             {user.profilePicture ? (
                                                 <img src={user.profilePicture} alt="" className="w-full h-full object-cover" />
                                             ) : (
