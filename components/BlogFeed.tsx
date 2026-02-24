@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
-import { CldUploadWidget, CloudinaryUploadWidgetResults } from "next-cloudinary";
+import { useUploadThing } from "@/lib/uploadthing";
 import { BlogPostSkeleton } from "@/components/Skeleton";
 import ReportModal from "@/components/ReportModal";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -39,6 +39,20 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
   const [loading, setLoading] = useState(true);
   const [newBlogContent, setNewBlogContent] = useState("");
   const [newBlogImage, setNewBlogImage] = useState<{ url: string; publicId: string } | null>(null);
+  const [isBlogUploading, setIsBlogUploading] = useState(false);
+  const blogFileInputRef = useRef<HTMLInputElement>(null);
+  const { startUpload: startBlogUpload } = useUploadThing("blogImageUploader", {
+    onClientUploadComplete: (res) => {
+      if (res?.[0]) {
+        setNewBlogImage({ url: res[0].ufsUrl, publicId: res[0].key });
+      }
+      setIsBlogUploading(false);
+    },
+    onUploadError: (error) => {
+      console.error("Upload error:", error);
+      setIsBlogUploading(false);
+    },
+  });
   const [posting, setPosting] = useState(false);
   const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
   const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
@@ -80,6 +94,7 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
   const lastScrollY = useRef(0);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isHeaderHidden, setIsHeaderHidden] = useState(false);
+  const [showMobilePostModal, setShowMobilePostModal] = useState(false);
 
   // Get current user info
   useEffect(() => {
@@ -190,6 +205,7 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
       if (res.ok) {
         setNewBlogContent("");
         setNewBlogImage(null);
+        setShowMobilePostModal(false);
         fetchBlogs();
       }
     } finally {
@@ -481,6 +497,21 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
           animation: fadeIn 0.2s ease-out;
         }
 
+        .animate-slide-up {
+          animation: modalSlideUp 0.3s ease-out;
+        }
+
+        @keyframes modalSlideUp {
+          from {
+            transform: translateY(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+
         .glass-effect {
           background: rgba(255, 255, 255, 0.7);
           backdrop-filter: blur(12px);
@@ -532,9 +563,9 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
         }
       `}</style>
 
-      {/* Create Post - Collapsible Header */}
+      {/* Create Post - Collapsible Header (desktop only) */}
       <div
-        className="z-10"
+        className="z-10 hidden md:block"
         style={{
           transform: isHeaderHidden ? 'scaleY(0)' : 'scaleY(1)',
           transformOrigin: 'top',
@@ -559,15 +590,15 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
               </div>
 
               {newBlogImage && (
-                <div className="relative rounded-2xl overflow-hidden shadow-lg animate-scale-in group">
+                <div className="relative rounded-2xl overflow-hidden shadow-lg animate-scale-in group bg-zinc-100 dark:bg-zinc-800">
                   <Image
                     src={newBlogImage.url}
                     alt="Preview"
-                    width={400}
-                    height={300}
-                    className="w-full max-h-64 object-cover"
+                    width={600}
+                    height={600}
+                    className="w-full max-h-[500px] object-contain"
                   />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
                   <button
                     type="button"
                     onClick={() => setNewBlogImage(null)}
@@ -579,35 +610,46 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
               )}
 
               <div className="flex gap-3 items-center justify-between">
-                <div className="flex gap-2">
-                  {process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME && (
-                    <CldUploadWidget
-                      uploadPreset="giga_chat"
-                      onSuccess={(result: CloudinaryUploadWidgetResults) => {
-                        if (result?.info && typeof result.info === "object" && "secure_url" in result.info && "public_id" in result.info) {
-                          setNewBlogImage({
-                            url: result.info.secure_url as string,
-                            publicId: result.info.public_id as string,
-                          });
-                        }
-                      }}
-                    >
-                      {({ open }) => (
-                        <button
-                          type="button"
-                          onClick={() => open()}
-                          className="icon-button px-4 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-xl text-sm font-medium transition-all flex items-center gap-2 shadow-sm hover:shadow border border-zinc-200 dark:border-zinc-700"
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                            <circle cx="8.5" cy="8.5" r="1.5" />
-                            <polyline points="21 15 16 10 5 21" />
-                          </svg>
-                          Photo
-                        </button>
-                      )}
-                    </CldUploadWidget>
-                  )}
+                <div className="flex gap-2 items-center">
+                  <input
+                    ref={blogFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setIsBlogUploading(true);
+                        await startBlogUpload([file]);
+                      }
+                      e.target.value = "";
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => blogFileInputRef.current?.click()}
+                    disabled={isBlogUploading}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 transition-all shadow-sm hover:shadow border border-zinc-200 dark:border-zinc-700 disabled:opacity-50"
+                  >
+                    {isBlogUploading ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                          <circle cx="8.5" cy="8.5" r="1.5" />
+                          <polyline points="21 15 16 10 5 21" />
+                        </svg>
+                        Photo
+                      </>
+                    )}
+                  </button>
                 </div>
                 <button
                   type="submit"
@@ -858,16 +900,16 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
 
                     {/* Image */}
                     {blog.imageUrl && (
-                      <div className="mb-4 -mx-5 sm:mx-0 sm:rounded-xl overflow-hidden group">
+                      <div className="mb-4 -mx-5 sm:mx-0 sm:rounded-xl overflow-hidden group bg-zinc-100 dark:bg-zinc-800/50">
                         <div className="relative">
                           <Image
                             src={blog.imageUrl}
                             alt="Blog"
-                            width={500}
-                            height={400}
-                            className="w-full max-h-96 object-cover transition-transform duration-300 group-hover:scale-105"
+                            width={700}
+                            height={700}
+                            className="w-full object-contain max-h-[600px] transition-transform duration-300 group-hover:scale-[1.02]"
                           />
-                          <div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                          <div className="absolute inset-0 bg-linear-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         </div>
                       </div>
                     )}
@@ -1114,6 +1156,129 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
           </div>
         </div>
       </div>
+      {/* Mobile Floating Action Button */}
+      <button
+        type="button"
+        onClick={() => setShowMobilePostModal(true)}
+        className="fixed bottom-6 right-6 z-50 md:hidden w-14 h-14 rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center"
+        aria-label="Create post"
+      >
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      </button>
+
+      {/* Mobile Post Creation Modal */}
+      {showMobilePostModal && (
+        <div className="fixed inset-0 z-[100] md:hidden flex items-end justify-center">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in"
+            onClick={() => setShowMobilePostModal(false)}
+          />
+          {/* Modal Panel */}
+          <div className="relative w-full max-h-[85vh] bg-white dark:bg-zinc-900 rounded-t-3xl shadow-2xl animate-slide-up overflow-y-auto">
+            {/* Handle bar */}
+            <div className="sticky top-0 z-10 bg-white dark:bg-zinc-900 pt-3 pb-2 flex justify-center rounded-t-3xl">
+              <div className="w-10 h-1 rounded-full bg-zinc-300 dark:bg-zinc-600" />
+            </div>
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pb-3 border-b border-zinc-200 dark:border-zinc-800">
+              <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Create Post</h3>
+              <button
+                type="button"
+                onClick={() => setShowMobilePostModal(false)}
+                className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 flex items-center justify-center transition-colors"
+              >
+                <span className="text-xl leading-none text-zinc-500 dark:text-zinc-400">×</span>
+              </button>
+            </div>
+            {/* Form */}
+            <div className="p-5">
+              <form onSubmit={(e) => { handlePostBlog(e); }} className="space-y-4">
+                <div className="relative group">
+                  <div className="absolute -inset-0.5 bg-linear-to-r from-zinc-300 via-zinc-200 to-zinc-300 dark:from-zinc-600 dark:via-zinc-500 dark:to-zinc-600 rounded-2xl blur opacity-0 group-focus-within:opacity-60 transition duration-500"></div>
+                  <textarea
+                    value={newBlogContent}
+                    onChange={(e) => setNewBlogContent(e.target.value)}
+                    placeholder="Share your thoughts..."
+                    className="relative w-full p-4 border-0 rounded-2xl bg-linear-to-br from-zinc-50 to-white dark:from-zinc-800 dark:to-zinc-900 text-foreground resize-none focus:outline-none ring-1 ring-zinc-200 dark:ring-zinc-700 focus:ring-2 focus:ring-zinc-400 dark:focus:ring-zinc-500 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500 shadow-inner"
+                    rows={4}
+                    autoFocus
+                  />
+                </div>
+
+                {newBlogImage && (
+                  <div className="relative rounded-2xl overflow-hidden shadow-lg group bg-zinc-100 dark:bg-zinc-800">
+                    <Image
+                      src={newBlogImage.url}
+                      alt="Preview"
+                      width={600}
+                      height={600}
+                      className="w-full max-h-[300px] object-contain"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
+                    <button
+                      type="button"
+                      onClick={() => setNewBlogImage(null)}
+                      className="absolute top-3 right-3 bg-black/80 text-white w-8 h-8 rounded-full hover:bg-black transition-all duration-200 flex items-center justify-center shadow-lg hover:scale-110"
+                    >
+                      <span className="text-xl leading-none">×</span>
+                    </button>
+                  </div>
+                )}
+
+                <div className="flex gap-3 items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => blogFileInputRef.current?.click()}
+                    disabled={isBlogUploading}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 transition-all shadow-sm hover:shadow border border-zinc-200 dark:border-zinc-700 disabled:opacity-50"
+                  >
+                    {isBlogUploading ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                          <circle cx="8.5" cy="8.5" r="1.5" />
+                          <polyline points="21 15 16 10 5 21" />
+                        </svg>
+                        Photo
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={posting || (!newBlogContent.trim() && !newBlogImage)}
+                    className="px-6 py-2.5 bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 rounded-xl text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
+                  >
+                    {posting ? (
+                      <span className="flex items-center gap-2">
+                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        Posting...
+                      </span>
+                    ) : (
+                      "Post"
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
       <ReportModal
         isOpen={reportData.isOpen}
         onClose={() => setReportData({ ...reportData, isOpen: false })}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
-import { CldUploadWidget } from "next-cloudinary";
+import { useUploadThing } from "@/lib/uploadthing";
 import { ProfilePageSkeleton } from "@/components/Skeleton";
 import ConfirmModal from "@/components/ConfirmModal";
 import { signOut } from "next-auth/react";
@@ -103,28 +103,40 @@ export default function UserProfile({ userId, onClose }: UserProfileProps) {
   }, [editName]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleProfilePictureUpload = useCallback(async (result: any) => {
+  const handleProfilePictureUpload = useCallback(async (res: any[]) => {
     try {
-      const info = result.info;
-      if (typeof info !== "object" || !info || !("secure_url" in info)) return;
+      if (!res?.[0]) return;
 
-      const res = await fetch("/api/users/me", {
+      const uploadRes = await fetch("/api/users/me", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          profilePictureUrl: info.secure_url,
-          profilePicturePublicId: info.public_id,
+          profilePictureUrl: res[0].ufsUrl,
+          profilePicturePublicId: res[0].key,
         }),
       });
 
-      if (res.ok) {
-        const updatedUser = await res.json();
+      if (uploadRes.ok) {
+        const updatedUser = await uploadRes.json();
         setUser(updatedUser);
       }
     } catch {
       // Ignore
     }
   }, []);
+
+  const [isProfileUploading, setIsProfileUploading] = useState(false);
+  const profileFileInputRef = useRef<HTMLInputElement>(null);
+  const { startUpload: startProfileUpload } = useUploadThing("blogImageUploader", {
+    onClientUploadComplete: (res) => {
+      handleProfilePictureUpload(res);
+      setIsProfileUploading(false);
+    },
+    onUploadError: (error) => {
+      console.error("Profile picture upload error:", error);
+      setIsProfileUploading(false);
+    },
+  });
 
   const handleDeleteBlog = useCallback(async (blogId: string) => {
     try {
@@ -237,21 +249,35 @@ export default function UserProfile({ userId, onClose }: UserProfileProps) {
                 )}
 
                 {/* Upload Overlay */}
-                {process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME && (
-                  <CldUploadWidget
-                    uploadPreset="giga_chat"
-                    onSuccess={handleProfilePictureUpload}
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 rounded-full overflow-hidden">
+                  <input
+                    ref={profileFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setIsProfileUploading(true);
+                        await startProfileUpload([file]);
+                      }
+                      e.target.value = "";
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => profileFileInputRef.current?.click()}
+                    disabled={isProfileUploading}
+                    className="w-full h-full flex items-center justify-center bg-transparent hover:bg-black/20 transition-colors rounded-full"
+                    title="Change profile picture"
                   >
-                    {({ open }) => (
-                      <div
-                        onClick={() => open()}
-                        className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer z-10 rounded-full"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>
-                      </div>
+                    {isProfileUploading ? (
+                      <svg className="animate-spin w-5 h-5 text-white" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>
                     )}
-                  </CldUploadWidget>
-                )}
+                  </button>
+                </div>
               </div>
             </div>
 

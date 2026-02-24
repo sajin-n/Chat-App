@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, memo } from "react";
+import Image from "next/image";
 import { useChatStore } from "@/lib/store";
 import ConfirmModal from "@/components/ConfirmModal";
+import { useUploadThing } from "@/lib/uploadthing";
 
 type MessageStatus = "sending" | "sent" | "failed";
 
@@ -13,6 +15,7 @@ interface Message {
   createdAt: string;
   clientId?: string;
   status?: MessageStatus;
+  imageUrl?: string;
   replyTo?: {
     _id: string;
     content: string;
@@ -37,11 +40,13 @@ const MessageBubble = memo(function MessageBubble({
   isOwn,
   onDelete,
   onReply,
+  onImageClick,
 }: {
   msg: Message;
   isOwn: boolean;
   onDelete?: () => void;
   onReply?: () => void;
+  onImageClick?: (url: string) => void;
 }) {
   const [showMenu, setShowMenu] = useState(false);
   const [swipeX, setSwipeX] = useState(0);
@@ -116,9 +121,27 @@ const MessageBubble = memo(function MessageBubble({
             {msg.senderId.username}
           </p>
         )}
-        <p className={`overflow-wrap-break-word text-[15px] leading-relaxed ${isOwn ? 'text-white' : 'text-zinc-800 dark:text-zinc-100'}`}>
-          {msg.content}
-        </p>
+        {msg.imageUrl && (
+          <button
+            type="button"
+            onClick={() => onImageClick?.(msg.imageUrl!)}
+            className="my-1 block cursor-zoom-in rounded-lg overflow-hidden"
+          >
+            <Image
+              src={msg.imageUrl}
+              alt="Shared image"
+              width={300}
+              height={300}
+              className="rounded-lg max-w-[260px] h-auto object-contain"
+              unoptimized
+            />
+          </button>
+        )}
+        {msg.content && (
+          <p className={`overflow-wrap-break-word text-[15px] leading-relaxed ${isOwn ? 'text-white' : 'text-zinc-800 dark:text-zinc-100'}`}>
+            {msg.content}
+          </p>
+        )}
 
         <div className="flex items-center justify-between gap-2 mt-1">
           <span className={`text-[10px] ${isOwn ? 'text-white/60' : 'text-zinc-400 dark:text-zinc-500'}`}>
@@ -217,6 +240,22 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [deleteGroupConfirm, setDeleteGroupConfirm] = useState(false);
+  const [messageImage, setMessageImage] = useState<{ url: string; publicId?: string } | null>(null);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { startUpload } = useUploadThing("chatFileUploader", {
+    onClientUploadComplete: (res) => {
+      if (res?.[0]) {
+        setMessageImage({ url: res[0].ufsUrl, publicId: res[0].key });
+      }
+      setIsUploading(false);
+    },
+    onUploadError: (error) => {
+      console.error("Upload error:", error);
+      setIsUploading(false);
+    },
+  });
 
   const isAdmin = group?.admins.some((a) => a._id === userId) ?? false;
   const isCreator = group?.createdBy._id === userId;
@@ -259,6 +298,9 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
     if (!activeGroupId) {
       setMessages([]);
       setGroup(null);
+      setMessageImage(null);
+      setReplyingTo(null);
+      setInput("");
       return;
     }
 
@@ -297,16 +339,19 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
 
   const handleSend = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || !activeGroupId || sending) return;
+    const trimmedInput = input.trim();
+    const currentImage = messageImage;
+    if ((!trimmedInput && !currentImage) || !activeGroupId || sending) return;
 
     const clientId = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
     const optimisticMessage: Message = {
       _id: clientId,
-      content: input.trim(),
+      content: trimmedInput,
       senderId: { _id: userId, username: "You" },
       createdAt: new Date().toISOString(),
       clientId,
       status: "sending",
+      imageUrl: currentImage?.url,
       replyTo: replyingTo ? {
         _id: replyingTo._id,
         content: replyingTo.content,
@@ -317,6 +362,7 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
     setMessages((prev) => [...prev, optimisticMessage]);
     setInput("");
     setReplyingTo(null);
+    setMessageImage(null);
     setSending(true);
 
     try {
@@ -324,9 +370,10 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          content: optimisticMessage.content,
+          content: trimmedInput,
           clientId,
           replyToId: optimisticMessage.replyTo?._id,
+          ...(currentImage && { imageUrl: currentImage.url, imagePublicId: currentImage.publicId }),
         }),
       });
 
@@ -353,7 +400,7 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
     } finally {
       setSending(false);
     }
-  }, [input, activeGroupId, sending, userId, replyingTo]);
+  }, [input, activeGroupId, sending, userId, replyingTo, messageImage]);
 
   const handleDeleteMessage = useCallback(async (messageId: string) => {
     if (!activeGroupId) return;
@@ -702,6 +749,7 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
                 setReplyingTo(msg);
                 inputRef.current?.focus();
               }}
+              onImageClick={(url) => setLightboxUrl(url)}
             />
           );
         })}
@@ -734,11 +782,67 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
         </div>
       )}
 
+      {/* Image Preview */}
+      {messageImage && (
+        <div className="shrink-0 px-4 py-2 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50">
+          <div className="relative inline-block">
+            <Image
+              src={messageImage.url}
+              alt="Upload preview"
+              width={120}
+              height={120}
+              className="rounded-lg object-cover max-h-[120px] w-auto"
+              unoptimized
+            />
+            <button
+              type="button"
+              onClick={() => setMessageImage(null)}
+              className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors shadow-md"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Input */}
       <form
         onSubmit={handleSend}
         className="shrink-0 px-4 py-4 border-t border-zinc-200 dark:border-zinc-800 flex gap-2.5 items-end bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl"
       >
+        {/* Upload Button */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*,video/*,.pdf"
+          className="hidden"
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              setIsUploading(true);
+              await startUpload([file]);
+            }
+            e.target.value = "";
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isUploading}
+          title="Attach file"
+          className="w-11 h-11 rounded-2xl flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
+        >
+          {isUploading ? (
+            <svg className="animate-spin w-5 h-5 text-blue-500" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+          ) : (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-600 dark:text-zinc-400">
+              <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+            </svg>
+          )}
+        </button>
         <div className="flex-1 relative">
           <input
             ref={inputRef}
@@ -752,7 +856,7 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
         </div>
         <button
           type="submit"
-          disabled={sending || !input.trim()}
+          disabled={sending || (!input.trim() && !messageImage)}
           title="Send message"
           className="w-11 h-11 bg-linear-to-br from-blue-500 to-blue-600 text-white font-medium rounded-full hover:shadow-lg hover:shadow-blue-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center active:scale-95"
         >
@@ -768,6 +872,34 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
           )}
         </button>
       </form>
+
+      {/* Image Lightbox */}
+      {lightboxUrl && (
+        <div
+          className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center animate-[fadeIn_0.15s_ease-out]"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setLightboxUrl(null)}
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+          <Image
+            src={lightboxUrl}
+            alt="Full size image"
+            width={1200}
+            height={1200}
+            className="max-w-[95vw] max-h-[90vh] object-contain rounded-lg"
+            unoptimized
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
 
       {/* Delete Group Confirmation Modal */}
       <ConfirmModal

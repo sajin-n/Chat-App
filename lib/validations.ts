@@ -31,11 +31,14 @@ export const updateGroupSchema = z.object({
 });
 
 export const sendMessageSchema = z.object({
-  content: z.string().max(2000, "Message too long"),
+  content: z.string().max(2000, "Message too long").default(""),
   imageUrl: z.string().optional(),
   imagePublicId: z.string().optional(),
   clientId: z.string().optional(),
   replyToId: z.string().optional(),
+}).refine((data) => data.content.trim().length > 0 || !!data.imageUrl, {
+  message: "Message must have content or an image",
+  path: ["content"],
 });
 
 export const paginationSchema = z.object({
@@ -44,7 +47,12 @@ export const paginationSchema = z.object({
 });
 
 export const createBlogSchema = z.object({
-  content: z.string().min(1, "Content cannot be empty").max(2000, "Content too long"),
+  content: z.string().max(2000, "Content too long").default(""),
+  imageUrl: z.string().optional(),
+  imagePublicId: z.string().optional(),
+}).refine((data) => data.content.trim().length > 0 || !!data.imageUrl, {
+  message: "Post must have content or an image",
+  path: ["content"],
 });
 
 export const updateUserSchema = z.object({

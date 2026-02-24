@@ -96,7 +96,7 @@ export async function POST(
       return validationErrorResponse(parsed.error);
     }
 
-    const { content, clientId, replyToId } = parsed.data;
+    const { content, clientId, replyToId, imageUrl, imagePublicId } = parsed.data;
 
     await dbConnect();
 
@@ -124,15 +124,18 @@ export async function POST(
       senderId: new mongoose.Types.ObjectId(session.user.id),
       content,
       clientId,
+      ...(imageUrl && { imageUrl }),
+      ...(imagePublicId && { imagePublicId }),
       ...(replyToId && { replyTo: replyToId }),
     });
 
     await message.populate("senderId", "username");
 
     // Update group's last message
+    const lastMsg = content?.trim() ? content.substring(0, 100) : (imageUrl ? "📷 Image" : "");
     await Chat.updateOne(
       { _id: groupId },
-      { lastMessage: content.substring(0, 100), updatedAt: new Date() }
+      { lastMessage: lastMsg, updatedAt: new Date() }
     );
 
     return NextResponse.json(message);

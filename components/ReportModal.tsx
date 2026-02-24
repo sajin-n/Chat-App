@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
+import Image from "next/image";
+import { useUploadThing } from "@/lib/uploadthing";
 
 interface ReportModalProps {
     isOpen: boolean;
@@ -21,6 +23,21 @@ export default function ReportModal({
     const [description, setDescription] = useState("");
     const [submitting, setSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
+    const [reportImage, setReportImage] = useState<{ url: string; publicId?: string } | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const { startUpload } = useUploadThing("blogImageUploader", {
+        onClientUploadComplete: (res) => {
+            if (res?.[0]) {
+                setReportImage({ url: res[0].ufsUrl, publicId: res[0].key });
+            }
+            setIsUploading(false);
+        },
+        onUploadError: (error) => {
+            console.error("Report image upload error:", error);
+            setIsUploading(false);
+        },
+    });
 
     if (!isOpen) return null;
 
@@ -38,6 +55,7 @@ export default function ReportModal({
                     reportedId,
                     reason,
                     description,
+                    ...(reportImage && { imageUrl: reportImage.url, imagePublicId: reportImage.publicId }),
                 }),
             });
 
@@ -48,6 +66,7 @@ export default function ReportModal({
                     setSubmitted(false);
                     setReason("");
                     setDescription("");
+                    setReportImage(null);
                 }, 2000);
             }
         } finally {
@@ -145,6 +164,74 @@ export default function ReportModal({
                                 <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
                                     {description.length}/500
                                 </p>
+                            </div>
+
+                            {/* Image Upload */}
+                            <div>
+                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                                    Attach screenshot (optional)
+                                </label>
+                                {reportImage ? (
+                                    <div className="relative inline-block">
+                                        <Image
+                                            src={reportImage.url}
+                                            alt="Report screenshot"
+                                            width={200}
+                                            height={150}
+                                            className="rounded-xl object-cover max-h-[150px] w-auto border border-zinc-200 dark:border-zinc-700"
+                                            unoptimized
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setReportImage(null)}
+                                            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors shadow-md"
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <input
+                                            ref={fileInputRef}
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={async (e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    setIsUploading(true);
+                                                    await startUpload([file]);
+                                                }
+                                                e.target.value = "";
+                                            }}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            disabled={isUploading}
+                                            className="flex items-center gap-2 px-4 py-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
+                                        >
+                                            {isUploading ? (
+                                                <>
+                                                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                                    </svg>
+                                                    Uploading...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                                                        <circle cx="8.5" cy="8.5" r="1.5" />
+                                                        <polyline points="21 15 16 10 5 21" />
+                                                    </svg>
+                                                    Upload Screenshot
+                                                </>
+                                            )}
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         </div>
 

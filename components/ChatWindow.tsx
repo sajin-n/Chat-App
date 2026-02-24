@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, memo } from "react";
 import Image from "next/image";
-import { CldUploadWidget, CloudinaryUploadWidgetResults } from "next-cloudinary";
+import { useUploadThing } from "@/lib/uploadthing";
 import { useChatStore } from "@/lib/store";
 import ReportModal from "@/components/ReportModal";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -38,12 +38,14 @@ const MessageBubble = memo(function MessageBubble({
   onDelete,
   onRetry,
   onReply,
+  onImageClick,
 }: {
   msg: Message;
   isOwn: boolean;
   onDelete?: () => void;
   onRetry?: () => void;
   onReply?: () => void;
+  onImageClick?: (url: string) => void;
 }) {
   const [showMenu, setShowMenu] = useState(false);
   const [swipeX, setSwipeX] = useState(0);
@@ -116,13 +118,19 @@ const MessageBubble = memo(function MessageBubble({
         )}
 
         {msg.imageUrl && (
-          <Image
-            src={msg.imageUrl}
-            alt="Message"
-            width={300}
-            height={250}
-            className="w-full rounded-2xl mb-2 max-h-64 object-cover"
-          />
+          <button
+            type="button"
+            onClick={() => onImageClick?.(msg.imageUrl!)}
+            className="block w-full cursor-zoom-in"
+          >
+            <Image
+              src={msg.imageUrl}
+              alt="Message"
+              width={300}
+              height={250}
+              className="w-full rounded-2xl mb-2 max-h-64 object-cover hover:opacity-90 transition-opacity"
+            />
+          </button>
         )}
         {msg.content && (
           <p className={`overflow-wrap-break-word text-[15px] leading-relaxed ${isOwn ? 'text-white' : 'text-zinc-800 dark:text-zinc-100'}`}>
@@ -218,6 +226,20 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
   const [chat, setChat] = useState<Chat | null>(null);
   const [input, setInput] = useState("");
   const [messageImage, setMessageImage] = useState<{ url: string; publicId: string } | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { startUpload } = useUploadThing("chatFileUploader", {
+    onClientUploadComplete: (res) => {
+      if (res?.[0]) {
+        setMessageImage({ url: res[0].ufsUrl, publicId: res[0].key });
+      }
+      setIsUploading(false);
+    },
+    onUploadError: (error) => {
+      console.error("Upload error:", error);
+      setIsUploading(false);
+    },
+  });
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [othersTyping, setOthersTyping] = useState(false);
@@ -230,6 +252,7 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [clearChatConfirm, setClearChatConfirm] = useState(false);
   const [deleteChatConfirm, setDeleteChatConfirm] = useState(false);
 
@@ -312,8 +335,15 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
       setMessages([]);
       setChat(null);
       setOthersTyping(false);
+      setMessageImage(null);
+      setInput("");
+      setReplyingTo(null);
       return;
     }
+
+    // Clear attachment state when switching chats
+    setMessageImage(null);
+    setReplyingTo(null);
 
     const isInitial = activeChatId !== lastFetchRef.current;
     fetchMessages(activeChatId, isInitial);
@@ -434,25 +464,31 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
     e.preventDefault();
     if ((!input.trim() && !messageImage) || !activeChatId || sending) return;
 
+    // Capture current values before clearing state
+    const currentInput = input.trim();
+    const currentImage = messageImage;
+    const currentReplyTo = replyingTo;
+    const currentChatId = activeChatId;
+
     // Clear typing indicator
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
-    sendTypingStatus(activeChatId, false);
+    sendTypingStatus(currentChatId, false);
 
     const clientId = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
     const optimisticMessage: Message = {
       _id: clientId,
-      content: input.trim(),
-      imageUrl: messageImage?.url,
+      content: currentInput,
+      imageUrl: currentImage?.url,
       senderId: { _id: userId, username: "You" },
       createdAt: new Date().toISOString(),
       clientId,
       status: "sending",
-      replyTo: replyingTo ? {
-        _id: replyingTo._id,
-        content: replyingTo.content,
-        senderId: replyingTo.senderId,
+      replyTo: currentReplyTo ? {
+        _id: currentReplyTo._id,
+        content: currentReplyTo.content,
+        senderId: currentReplyTo.senderId,
       } : undefined,
     };
 
@@ -463,13 +499,13 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
     setSending(true);
 
     try {
-      const res = await fetch(`/api/chats/${activeChatId}/messages`, {
+      const res = await fetch(`/api/chats/${currentChatId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          content: optimisticMessage.content,
-          imageUrl: messageImage?.url,
-          imagePublicId: messageImage?.publicId,
+          content: currentInput,
+          imageUrl: currentImage?.url,
+          imagePublicId: currentImage?.publicId,
           clientId,
           replyToId: optimisticMessage.replyTo?._id,
         }),
@@ -660,6 +696,7 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
                 setReplyingTo(msg);
                 inputRef.current?.focus();
               }}
+              onImageClick={(url) => setLightboxUrl(url)}
             />
           );
         })}
@@ -730,34 +767,38 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
           </div>
         )}
         <div className="flex gap-2.5 items-end">
-          {process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME && (
-            <CldUploadWidget
-              uploadPreset="giga_chat"
-              onSuccess={(result: CloudinaryUploadWidgetResults) => {
-                if (result.info && typeof result.info === "object" && "secure_url" in result.info && "public_id" in result.info) {
-                  setMessageImage({
-                    url: result.info.secure_url,
-                    publicId: result.info.public_id,
-                  });
-                }
-              }}
-            >
-              {({ open }) => (
-                <button
-                  type="button"
-                  onClick={() => open()}
-                  title="Attach image"
-                  className="w-11 h-11 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-2xl transition-all active:scale-95 shadow-sm"
-                >
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-600 dark:text-zinc-400">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                    <circle cx="8.5" cy="8.5" r="1.5" />
-                    <polyline points="21 15 16 10 5 21" />
-                  </svg>
-                </button>
-              )}
-            </CldUploadWidget>
-          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,video/*,.pdf"
+            className="hidden"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                setIsUploading(true);
+                await startUpload([file]);
+              }
+              e.target.value = "";
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+            title="Attach file"
+            className="w-11 h-11 rounded-2xl flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
+          >
+            {isUploading ? (
+              <svg className="animate-spin w-5 h-5 text-blue-500" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            ) : (
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-600 dark:text-zinc-400">
+                <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+              </svg>
+            )}
+          </button>
           <div className="flex-1 relative">
             <input
               ref={inputRef}
@@ -885,6 +926,33 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
         onConfirm={handleDeleteChat}
         onCancel={() => setDeleteChatConfirm(false)}
       />
+
+      {/* Image Lightbox */}
+      {lightboxUrl && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-md animate-[fadeIn_0.2s_ease-out] cursor-zoom-out"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <button
+            onClick={() => setLightboxUrl(null)}
+            className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all active:scale-95"
+            aria-label="Close"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+          <Image
+            src={lightboxUrl}
+            alt="Full size"
+            width={1200}
+            height={1200}
+            className="max-w-[95vw] max-h-[90vh] object-contain rounded-lg shadow-2xl animate-[scaleIn_0.2s_ease-out]"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
       return validationErrorResponse(parsed.error);
     }
 
-    const { content } = parsed.data;
+    const { content, imageUrl, imagePublicId } = parsed.data;
 
     await dbConnect();
 
@@ -90,9 +90,9 @@ export async function POST(req: NextRequest) {
 
     const blog = await Blog.create({
       authorId: session.user.id,
-      content,
-      imageUrl: body.imageUrl,
-      imagePublicId: body.imagePublicId,
+      content: content || "",
+      ...(imageUrl && { imageUrl }),
+      ...(imagePublicId && { imagePublicId }),
     });
 
     await blog.populate("authorId", "username profilePicture");
