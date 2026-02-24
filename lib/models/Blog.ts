@@ -14,7 +14,7 @@ export interface IBlog extends Document {
 
 const BlogSchema = new Schema<IBlog>({
   authorId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-  content: { type: String, required: true, maxlength: 2000 },
+  content: { type: String, default: "", maxlength: 2000 },
   imageUrl: { type: String },
   imagePublicId: { type: String },
   likes: [{ type: Schema.Types.ObjectId, ref: "User" }],

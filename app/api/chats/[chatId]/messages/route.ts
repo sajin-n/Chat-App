@@ -98,7 +98,7 @@ export async function POST(
       return validationErrorResponse(parsed.error);
     }
 
-    const { content, clientId, replyToId } = parsed.data;
+    const { content, imageUrl, imagePublicId, clientId, replyToId } = parsed.data;
 
     await dbConnect();
 
@@ -114,13 +114,19 @@ export async function POST(
     const message = await Message.create({
       chatId,
       senderId: session.user.id,
-      content: content.trim(),
+      content: (content || "").trim(),
       clientId,
+      ...(imageUrl && { imageUrl }),
+      ...(imagePublicId && { imagePublicId }),
       ...(replyToId && { replyTo: replyToId }),
     });
 
+    const lastMessageText = content?.trim()
+      ? content.trim().substring(0, 100)
+      : imageUrl ? "📷 Image" : "";
+
     await Chat.findByIdAndUpdate(chatId, {
-      lastMessage: content.trim().substring(0, 100),
+      lastMessage: lastMessageText,
       lastMessageAt: new Date(),
       updatedAt: new Date(),
     });

@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { reportedType, reportedId, reason, description } = body;
+        const { reportedType, reportedId, reason, description, imageUrl, imagePublicId } = body;
 
         // Validate inputs
         if (!reportedType || !reportedId || !reason) {
@@ -56,6 +56,8 @@ export async function POST(req: NextRequest) {
             reportedId: reportedObjectId,
             reason,
             description: description || "",
+            ...(imageUrl && { imageUrl }),
+            ...(imagePublicId && { imagePublicId }),
             status: "pending",
         });
 

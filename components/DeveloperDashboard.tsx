@@ -39,6 +39,7 @@ interface Report {
     reportedItem: any;
     reason: string;
     description?: string;
+    imageUrl?: string;
     status: "pending" | "resolved";
     createdAt: string;
 }
@@ -831,6 +832,11 @@ export default function DeveloperDashboard() {
                                                             {report.description && (
                                                                 <p className="text-sm text-zinc-400">{report.description}</p>
                                                             )}
+                                                            {report.imageUrl && (
+                                                                <div className="mt-2 rounded-xl overflow-hidden max-w-xs border border-zinc-700">
+                                                                    <img src={report.imageUrl} alt="Report screenshot" className="w-full object-contain max-h-[200px] bg-zinc-800" />
+                                                                </div>
+                                                            )}
                                                         </div>
 
                                                         <div className="text-xs text-zinc-500 space-y-1">
@@ -840,11 +846,20 @@ export default function DeveloperDashboard() {
                                                                 </p>
                                                             )}
                                                             {report.reportedItem && !report.reportedItem.deleted && (
-                                                                <p className="bg-zinc-800 p-2 rounded mt-2">
-                                                                    {report.reportedType === "user" && `User: ${report.reportedItem.username}`}
-                                                                    {report.reportedType === "post" && `Post: ${report.reportedItem.content}`}
-                                                                    {report.reportedType === "comment" && `Comment: ${report.reportedItem.content}`}
-                                                                </p>
+                                                                <div className="bg-zinc-800 p-2 rounded mt-2">
+                                                                    {report.reportedType === "user" && <p>User: {report.reportedItem.username}</p>}
+                                                                    {report.reportedType === "post" && (
+                                                                        <>
+                                                                            <p>Post: {report.reportedItem.content}</p>
+                                                                            {report.reportedItem.imageUrl && (
+                                                                                <div className="mt-2 rounded-lg overflow-hidden max-w-[200px]">
+                                                                                    <img src={report.reportedItem.imageUrl} alt="Post image" className="w-full object-contain max-h-[150px] bg-zinc-900" />
+                                                                                </div>
+                                                                            )}
+                                                                        </>
+                                                                    )}
+                                                                    {report.reportedType === "comment" && <p>Comment: {report.reportedItem.content}</p>}
+                                                                </div>
                                                             )}
                                                             {report.reportedItem?.deleted && (
                                                                 <p className="text-red-400">[Reported item has been deleted]</p>

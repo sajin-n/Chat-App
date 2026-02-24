@@ -19,15 +19,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        console.log("[Auth] Authorize called with:", credentials?.email);
+        console.log("[Auth] Authorize called with email:", credentials?.email, "type:", typeof credentials?.email);
 
         if (!credentials?.email || !credentials?.password) {
-          console.log("[Auth] Missing credentials");
+          console.log("[Auth] Missing credentials - email:", !!credentials?.email, "password:", !!credentials?.password);
           return null;
         }
 
-        const email = (credentials.email as string).toLowerCase().trim();
-        const password = credentials.password as string;
+        const email = String(credentials.email).toLowerCase().trim();
+        const password = String(credentials.password);
 
         console.log("[Auth] Checking email:", email);
 

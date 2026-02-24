@@ -41,6 +41,7 @@ export async function GET(req: NextRequest) {
                             }),
                             ...(report.reportedType === "post" && {
                                 content: item.content?.substring(0, 100) + "...",
+                                imageUrl: item.imageUrl,
                             }),
                             ...(report.reportedType === "comment" && {
                                 content: item.content,
@@ -64,6 +65,7 @@ export async function GET(req: NextRequest) {
                     reportedItem,
                     reason: report.reason,
                     description: report.description,
+                    imageUrl: report.imageUrl,
                     status: report.status,
                     createdAt: report.createdAt,
                 };

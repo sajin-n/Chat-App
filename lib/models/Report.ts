@@ -7,6 +7,8 @@ export interface IReport extends Document {
     reportedId: mongoose.Types.ObjectId;
     reason: string;
     description?: string;
+    imageUrl?: string;
+    imagePublicId?: string;
     status: "pending" | "resolved";
     createdAt: Date;
     updatedAt: Date;
@@ -22,6 +24,8 @@ const ReportSchema = new Schema<IReport>({
     reportedId: { type: Schema.Types.ObjectId, required: true },
     reason: { type: String, required: true, maxlength: 100 },
     description: { type: String, maxlength: 500 },
+    imageUrl: { type: String },
+    imagePublicId: { type: String },
     status: {
         type: String,
         enum: ["pending", "resolved"],

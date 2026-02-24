@@ -65,6 +65,8 @@ function LoginForm() {
         redirect: false,
       });
 
+      console.log("[Login] signIn result:", JSON.stringify(result));
+
       if (result?.error) {
         if (result.error === "Configuration") {
           throw new Error("System error. Please contact a developer.");
@@ -72,7 +74,10 @@ function LoginForm() {
         if (result.error === "AccessDenied") {
           throw new Error("Access denied. Please check your credentials.");
         }
-        throw new Error("Invalid email or password");
+        if (result.error === "CredentialsSignin") {
+          throw new Error("Invalid email or password. Please try again.");
+        }
+        throw new Error(result.error || "Login failed");
       }
 
       if (result?.ok) {
