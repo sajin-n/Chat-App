@@ -280,7 +280,7 @@ export default function DeveloperDashboard() {
     });
 
     return (
-        <div className="min-h-screen bg-zinc-950 text-white">
+        <div className="h-screen overflow-y-auto bg-zinc-950 text-white">
             {/* Header */}
             <header className="border-b border-zinc-800 bg-zinc-900/50 backdrop-blur-sm sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
@@ -809,7 +809,7 @@ export default function DeveloperDashboard() {
                                                     <div className="flex-1 min-w-0">
                                                         <div className="flex items-center gap-2 mb-2">
                                                             <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${report.reportedType === "user"
-                                                                ? "bg-blue-500/20 text-blue-400"
+                                                                ? "bg-[#948979]/20 text-[#DFD0B8]"
                                                                 : report.reportedType === "post"
                                                                     ? "bg-purple-500/20 text-purple-400"
                                                                     : "bg-green-500/20 text-green-400"
