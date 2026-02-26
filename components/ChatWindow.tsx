@@ -6,6 +6,7 @@ import { useUploadThing } from "@/lib/uploadthing";
 import { useChatStore } from "@/lib/store";
 import ReportModal from "@/components/ReportModal";
 import ConfirmModal from "@/components/ConfirmModal";
+import UserProfileModal from "@/components/UserProfileModal";
 
 type MessageStatus = "sending" | "sent" | "failed";
 
@@ -255,6 +256,7 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [clearChatConfirm, setClearChatConfirm] = useState(false);
   const [deleteChatConfirm, setDeleteChatConfirm] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   const getOtherParticipant = useCallback(() => {
     return chat?.participants.find((p) => p._id !== userId);
@@ -605,16 +607,21 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
               <polyline points="15 18 9 12 15 6" />
             </svg>
           </button>
-          <div className="relative">
-            <div className="w-11 h-11 rounded-full bg-linear-to-br from-[#948979] to-[#7d7466] flex items-center justify-center text-base font-bold text-white shadow-lg shadow-[#948979]/30">
-              {otherUser?.username?.[0]?.toUpperCase() || "?"}
+          <button
+            onClick={() => otherUser && setShowProfileModal(true)}
+            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+          >
+            <div className="relative">
+              <div className="w-11 h-11 rounded-full bg-linear-to-br from-[#948979] to-[#7d7466] flex items-center justify-center text-base font-bold text-white shadow-lg shadow-[#948979]/30">
+                {otherUser?.username?.[0]?.toUpperCase() || "?"}
+              </div>
+              <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white dark:border-zinc-900"></div>
             </div>
-            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white dark:border-zinc-900"></div>
-          </div>
-          <div>
-            <h2 className="font-semibold text-base text-zinc-900 dark:text-zinc-100">{otherUser?.username || "Loading..."}</h2>
-            <p className="text-xs text-green-600 dark:text-green-500 font-medium">● Online</p>
-          </div>
+            <div className="text-left">
+              <h2 className="font-semibold text-base text-zinc-900 dark:text-zinc-100">{otherUser?.username || "Loading..."}</h2>
+              <p className="text-xs text-green-600 dark:text-green-500 font-medium">● Online</p>
+            </div>
+          </button>
         </div>
         <div className="relative">
           <button
@@ -951,6 +958,14 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
           />
         </div>
       )}
+
+      {/* User Profile Modal */}
+      <UserProfileModal
+        isOpen={showProfileModal}
+        userId={otherUser?._id || ""}
+        onClose={() => setShowProfileModal(false)}
+        chatId={activeChatId || undefined}
+      />
     </div>
   );
 }
