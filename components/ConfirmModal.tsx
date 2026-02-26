@@ -50,13 +50,13 @@ export default function ConfirmModal({
         <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
             {/* Backdrop */}
             <div
-                className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]"
                 onClick={onCancel}
             />
 
             {/* Modal */}
             <div
-                className="relative w-full max-w-sm bg-linear-to-b from-white to-zinc-50 dark:from-zinc-900 dark:to-zinc-950 rounded-2xl shadow-2xl border border-zinc-200/50 dark:border-zinc-800/50 overflow-hidden animate-modal-in"
+                className="relative w-full max-w-sm bg-linear-to-b from-white to-zinc-50 dark:from-zinc-900 dark:to-zinc-950 rounded-2xl shadow-2xl border border-zinc-200/50 dark:border-zinc-800/50 overflow-hidden animate-[modalIn_0.25s_cubic-bezier(0.16,1,0.3,1)]"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
@@ -93,35 +93,6 @@ export default function ConfirmModal({
                 </div>
             </div>
 
-            <style jsx>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-
-        @keyframes modalIn {
-          from {
-            opacity: 0;
-            transform: scale(0.95) translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1) translateY(0);
-          }
-        }
-
-        .animate-fade-in {
-          animation: fadeIn 0.2s ease-out;
-        }
-
-        .animate-modal-in {
-          animation: modalIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-      `}</style>
         </div>
     );
 }
