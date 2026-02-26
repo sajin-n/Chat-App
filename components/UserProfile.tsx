@@ -243,7 +243,7 @@ export default function UserProfile({ userId, onClose }: UserProfileProps) {
                     className="object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center text-2xl font-bold text-white">
+                  <div className="w-full h-full bg-linear-to-br from-[#948979] to-[#7d7466] flex items-center justify-center text-2xl font-bold text-white">
                     {user.username[0]?.toUpperCase()}
                   </div>
                 )}
@@ -291,7 +291,7 @@ export default function UserProfile({ userId, onClose }: UserProfileProps) {
                       type="text"
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-xl text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-zinc-400"
+                      className="w-full px-4 py-2.5 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-xl text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-[#948979] transition-all placeholder:text-zinc-400"
                       placeholder="Enter username"
                       autoFocus
                     />
@@ -301,7 +301,7 @@ export default function UserProfile({ userId, onClose }: UserProfileProps) {
                     <button
                       onClick={handleSaveProfile}
                       disabled={saving}
-                      className="px-5 py-2 bg-blue-500 text-white rounded-xl text-sm font-semibold hover:bg-blue-600 disabled:opacity-50 transition-colors shadow-sm"
+                      className="px-5 py-2 bg-[#948979] text-white rounded-xl text-sm font-semibold hover:bg-[#7d7466] disabled:opacity-50 transition-colors shadow-sm"
                     >
                       {saving ? "Saving..." : "Save"}
                     </button>
