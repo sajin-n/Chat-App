@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
+import SplashScreen from "@/components/SplashScreen";
 import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
 import { extractRouterConfig } from "uploadthing/server";
 import { ourFileRouter } from "@/app/api/uploadthing/core";
 
 export const metadata: Metadata = {
-  title: "Chat",
-  description: "Minimal chat app",
+  title: "PaBlo",
+  description: "Connect · Share · Chat",
 };
 
 export default function RootLayout({
@@ -20,7 +21,9 @@ export default function RootLayout({
       <body className="antialiased">
         <NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />
         <Providers>
-          {children}
+          <SplashScreen>
+            {children}
+          </SplashScreen>
         </Providers>
       </body>
     </html>

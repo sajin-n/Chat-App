@@ -6,6 +6,8 @@ import { useUploadThing } from "@/lib/uploadthing";
 import { BlogPostSkeleton } from "@/components/Skeleton";
 import ReportModal from "@/components/ReportModal";
 import ConfirmModal from "@/components/ConfirmModal";
+import SharePostModal from "@/components/SharePostModal";
+import UserProfileModal from "@/components/UserProfileModal";
 import { useChatStore } from "@/lib/store";
 
 interface Blog {
@@ -34,7 +36,7 @@ interface BlogFeedProps {
 }
 
 export default function BlogFeed({ userId }: BlogFeedProps) {
-  const { targetBlogId, setTargetBlogId } = useChatStore();
+  const { targetBlogId, setTargetBlogId, setActiveView } = useChatStore();
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);
   const [newBlogContent, setNewBlogContent] = useState("");
@@ -89,6 +91,8 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
     blogId: null,
     commentId: null,
   });
+  const [sharePost, setSharePost] = useState<Blog | null>(null);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const blogRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const feedContainerRef = useRef<HTMLDivElement>(null);
   const lastScrollY = useRef(0);
@@ -680,7 +684,7 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
         onScroll={handleFeedScroll}
         className="flex-1 overflow-y-auto"
       >
-        <div className="max-w-2xl mx-auto w-full px-2 sm:px-4 py-6">
+        <div className="max-w-2xl mx-auto w-full px-2 sm:px-4 py-6 pb-24 md:pb-6">
           {loading && (
             <div className="space-y-4 animate-fade-in">
               {Array.from({ length: 3 }).map((_, i) => (
@@ -726,7 +730,10 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
                     {/* Author Info */}
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-3">
-                        <div className="relative">
+                        <button
+                          onClick={() => setProfileUserId(blog.authorId._id)}
+                          className="relative cursor-pointer hover:opacity-80 transition-opacity"
+                        >
                           {blog.authorId.profilePicture ? (
                             <Image
                               src={blog.authorId.profilePicture}
@@ -740,14 +747,15 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
                               {blog.authorId.username[0]?.toUpperCase()}
                             </div>
                           )}
-                        </div>
+                        </button>
                         <div>
-                          <p className="font-semibold text-zinc-900 dark:text-zinc-100">{blog.authorId.username}</p>
-                          <p className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <circle cx="12" cy="12" r="10" />
-                              <polyline points="12 6 12 12 16 14" />
-                            </svg>
+                          <button
+                            onClick={() => setProfileUserId(blog.authorId._id)}
+                            className="font-semibold text-zinc-900 dark:text-zinc-100 hover:underline cursor-pointer"
+                          >
+                            {blog.authorId.username}
+                          </button>
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400">
                             {new Date(blog.createdAt).toLocaleDateString("en-US", {
                               month: "short",
                               day: "numeric",
@@ -961,6 +969,19 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
                         </svg>
                         <span className="font-medium">{blog.comments.length}</span>
                       </button>
+                      <button
+                        onClick={() => setSharePost(blog)}
+                        className="icon-button flex items-center gap-2 px-3 py-1.5 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-[#948979] dark:hover:text-[#DFD0B8] hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="18" cy="5" r="3" />
+                          <circle cx="6" cy="12" r="3" />
+                          <circle cx="18" cy="19" r="3" />
+                          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                        </svg>
+                        <span className="font-medium">Share</span>
+                      </button>
                     </div>
 
                     {/* Comments */}
@@ -969,25 +990,33 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
                         }`}>
                         {blog.comments.map((comment) => (
                           <div key={comment._id} className="flex gap-3">
+                          <button
+                            onClick={() => setProfileUserId(comment.authorId._id)}
+                            className="shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                          >
                             {comment.authorId.profilePicture ? (
                               <Image
                                 src={comment.authorId.profilePicture}
                                 alt={comment.authorId.username}
                                 width={32}
                                 height={32}
-                                className="w-8 h-8 rounded-full object-cover shrink-0 ring-2 ring-zinc-100 dark:ring-zinc-800"
+                                className="w-8 h-8 rounded-full object-cover ring-2 ring-zinc-100 dark:ring-zinc-800"
                               />
                             ) : (
-                              <div className="w-8 h-8 rounded-full bg-linear-to-br from-zinc-700 to-zinc-500 dark:from-zinc-300 dark:to-zinc-500 flex items-center justify-center text-xs text-white dark:text-zinc-900 font-bold shrink-0 ring-2 ring-zinc-100 dark:ring-zinc-800">
+                              <div className="w-8 h-8 rounded-full bg-linear-to-br from-zinc-700 to-zinc-500 dark:from-zinc-300 dark:to-zinc-500 flex items-center justify-center text-xs text-white dark:text-zinc-900 font-bold ring-2 ring-zinc-100 dark:ring-zinc-800">
                                 {comment.authorId.username[0]?.toUpperCase()}
                               </div>
                             )}
+                          </button>
                             <div className="flex-1 min-w-0">
                               <div className="bg-linear-to-br from-zinc-50 to-zinc-100/50 dark:from-zinc-800/50 dark:to-zinc-800/30 rounded-2xl p-3 relative group hover:from-zinc-100 hover:to-zinc-50 dark:hover:from-zinc-800 dark:hover:to-zinc-800/50 transition-all duration-200 border border-zinc-200/50 dark:border-zinc-700/50">
                                 <div className="flex items-start justify-between mb-1">
-                                  <p className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">
+                                  <button
+                                    onClick={() => setProfileUserId(comment.authorId._id)}
+                                    className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 hover:underline cursor-pointer"
+                                  >
                                     {comment.authorId.username}
-                                  </p>
+                                  </button>
                                   {(() => {
                                     const commentAuthorId = comment.authorId._id?.toString?.() ?? comment.authorId._id;
                                     const isCommentAuthor = commentAuthorId === userId || (currentUser?._id && commentAuthorId === currentUser._id.toString?.());
@@ -1156,18 +1185,58 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
           </div>
         </div>
       </div>
-      {/* Mobile Floating Action Button */}
-      <button
-        type="button"
-        onClick={() => setShowMobilePostModal(true)}
-        className="fixed bottom-6 right-6 z-50 md:hidden w-14 h-14 rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center"
-        aria-label="Create post"
-      >
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="12" y1="5" x2="12" y2="19" />
-          <line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
-      </button>
+      {/* Mobile Floating Bottom Navigation */}
+      <nav className="fixed bottom-0 inset-x-0 z-50 md:hidden">
+        {/* Glassmorphism backdrop */}
+        <div className="mx-3 mb-3 rounded-2xl bg-[#DFD0B8]/0 dark:bg-[#222831]/0 backdrop-blur-xl border border-[#c4b59e]/40 dark:border-[#393E46]/40 shadow-[0_4px_24px_rgba(34,40,49,0.1)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.3)]">
+          <div className="flex items-center justify-around py-1 px-1">
+            {/* Personal Chats */}
+            <button
+              type="button"
+              onClick={() => setActiveView("chats")}
+              className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl text-[#948979] dark:text-[#948979] hover:text-[#222831] dark:hover:text-[#DFD0B8] hover:bg-[#c4b59e]/20 dark:hover:bg-[#393E46]/30 active:scale-95 transition-all duration-200"
+              aria-label="Personal chats"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+              <span className="text-[9px] font-semibold leading-none">Chats</span>
+            </button>
+
+            {/* Add Post (center, highlighted) */}
+            <button
+              type="button"
+              onClick={() => setShowMobilePostModal(true)}
+              className="flex flex-col items-center gap-0.5 px-4 py-1 rounded-xl relative group active:scale-95 transition-all duration-200"
+              aria-label="Create post"
+            >
+              <div className="w-9 h-9 rounded-full bg-[#393E46] dark:bg-[#DFD0B8] text-[#DFD0B8] dark:text-[#222831] flex items-center justify-center shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all duration-200">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+              </div>
+              <span className="text-[9px] font-semibold leading-none text-[#948979] dark:text-[#948979]">Post</span>
+            </button>
+
+            {/* Group Chats */}
+            <button
+              type="button"
+              onClick={() => setActiveView("groups")}
+              className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl text-[#948979] dark:text-[#948979] hover:text-[#222831] dark:hover:text-[#DFD0B8] hover:bg-[#c4b59e]/20 dark:hover:bg-[#393E46]/30 active:scale-95 transition-all duration-200"
+              aria-label="Group chats"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+              <span className="text-[9px] font-semibold leading-none">Groups</span>
+            </button>
+          </div>
+        </div>
+      </nav>
 
       {/* Mobile Post Creation Modal */}
       {showMobilePostModal && (
@@ -1317,6 +1386,23 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
           }
         }}
         onCancel={() => setDeleteCommentConfirm({ isOpen: false, blogId: null, commentId: null })}
+      />
+
+      {/* Share Post Modal */}
+      {sharePost && (
+        <SharePostModal
+          isOpen={!!sharePost}
+          onClose={() => setSharePost(null)}
+          blog={sharePost}
+          userId={userId}
+        />
+      )}
+
+      {/* User Profile Modal */}
+      <UserProfileModal
+        isOpen={!!profileUserId}
+        userId={profileUserId || ""}
+        onClose={() => setProfileUserId(null)}
       />
     </div>
   );

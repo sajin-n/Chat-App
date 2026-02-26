@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useChatStore } from "@/lib/store";
 import ConfirmModal from "@/components/ConfirmModal";
 import { useUploadThing } from "@/lib/uploadthing";
+import UserProfileModal from "@/components/UserProfileModal";
 
 type MessageStatus = "sending" | "sent" | "failed";
 
@@ -41,30 +42,62 @@ const MessageBubble = memo(function MessageBubble({
   onDelete,
   onReply,
   onImageClick,
+  onMemberClick,
+  onPostClick,
 }: {
   msg: Message;
   isOwn: boolean;
   onDelete?: () => void;
   onReply?: () => void;
   onImageClick?: (url: string) => void;
+  onMemberClick?: (userId: string) => void;
+  onPostClick?: (blogId: string) => void;
 }) {
   const [showMenu, setShowMenu] = useState(false);
   const [swipeX, setSwipeX] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
   const touchStartX = useRef(0);
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const didLongPress = useRef(false);
+
+  // Detect shared post: format is [shared_post:BLOG_ID]...
+  const sharedPostMatch = msg.content?.match(/^\[shared_post:([a-f0-9]+)\]/);
+  const isSharedPost = !!sharedPostMatch;
+  const sharedBlogId = sharedPostMatch?.[1] || "";
+  const sharedPostContent = isSharedPost ? msg.content.replace(/^\[shared_post:[a-f0-9]+\]/, "") : "";
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
     setIsSwiping(true);
+    didLongPress.current = false;
+    longPressTimer.current = setTimeout(() => {
+      didLongPress.current = true;
+      setShowMenu(true);
+      if (navigator.vibrate) navigator.vibrate(20);
+    }, 500);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
     if (!isSwiping) return;
     const diff = e.touches[0].clientX - touchStartX.current;
     setSwipeX(Math.max(0, Math.min(diff, 80)));
   };
 
   const handleTouchEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    if (didLongPress.current) {
+      didLongPress.current = false;
+      setSwipeX(0);
+      setIsSwiping(false);
+      return;
+    }
     if (swipeX > 50 && onReply) {
       onReply();
       if (navigator.vibrate) navigator.vibrate(10);
@@ -117,30 +150,67 @@ const MessageBubble = memo(function MessageBubble({
         )}
 
         {!isOwn && (
-          <p className={`text-[11px] font-bold mb-1.5 ${isOwn ? 'text-white/80' : 'text-[#948979] dark:text-[#DFD0B8]/70'} tracking-wide uppercase`}>
-            {msg.senderId.username}
-          </p>
-        )}
-        {msg.imageUrl && (
           <button
-            type="button"
-            onClick={() => onImageClick?.(msg.imageUrl!)}
-            className="my-1 block cursor-zoom-in rounded-lg overflow-hidden"
+            onClick={() => onMemberClick?.(msg.senderId._id)}
+            className="text-[11px] font-bold mb-1.5 text-[#948979] dark:text-[#DFD0B8]/70 tracking-wide uppercase hover:underline cursor-pointer"
+            title={`View ${msg.senderId.username}'s profile`}
           >
-            <Image
-              src={msg.imageUrl}
-              alt="Shared image"
-              width={300}
-              height={300}
-              className="rounded-lg max-w-[260px] h-auto object-contain"
-              unoptimized
-            />
+            {msg.senderId.username}
           </button>
         )}
-        {msg.content && (
-          <p className={`overflow-wrap-break-word text-[15px] leading-relaxed ${isOwn ? 'text-white' : 'text-zinc-800 dark:text-zinc-100'}`}>
-            {msg.content}
-          </p>
+        {isSharedPost ? (
+          <button
+            onClick={() => onPostClick?.(sharedBlogId)}
+            className={`block w-full text-left rounded-xl overflow-hidden border ${isOwn ? 'border-white/20 bg-white/10' : 'border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50'} hover:opacity-90 transition-opacity cursor-pointer`}
+          >
+            {msg.imageUrl && (
+              <Image
+                src={msg.imageUrl}
+                alt="Post image"
+                width={300}
+                height={160}
+                className="w-full h-32 object-cover"
+                unoptimized
+              />
+            )}
+            <div className="p-3">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isOwn ? 'text-white/70' : 'text-[#948979]'}>
+                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                  <polyline points="14 2 14 8 20 8" />
+                </svg>
+                <span className={`text-xs font-semibold ${isOwn ? 'text-white/80' : 'text-[#948979] dark:text-[#DFD0B8]/70'}`}>Shared Post</span>
+              </div>
+              <p className={`text-[13px] leading-snug line-clamp-3 ${isOwn ? 'text-white/90' : 'text-zinc-700 dark:text-zinc-300'}`}>
+                {sharedPostContent.replace(/^📄 Shared a post by @[^:]+:\s*\n*"?/, '').replace(/"$/, '')}
+              </p>
+              <span className={`text-[11px] mt-2 block ${isOwn ? 'text-white/50' : 'text-zinc-400'}`}>Tap to view post →</span>
+            </div>
+          </button>
+        ) : (
+          <>
+            {msg.imageUrl && (
+              <button
+                type="button"
+                onClick={() => onImageClick?.(msg.imageUrl!)}
+                className="my-1 block cursor-zoom-in rounded-lg overflow-hidden"
+              >
+                <Image
+                  src={msg.imageUrl}
+                  alt="Shared image"
+                  width={300}
+                  height={300}
+                  className="rounded-lg max-w-[260px] h-auto object-contain"
+                  unoptimized
+                />
+              </button>
+            )}
+            {msg.content && (
+              <p className={`overflow-wrap-break-word text-[15px] leading-relaxed ${isOwn ? 'text-white' : 'text-zinc-800 dark:text-zinc-100'}`}>
+                {msg.content}
+              </p>
+            )}
+          </>
         )}
 
         <div className="flex items-center justify-between gap-2 mt-1">
@@ -184,7 +254,7 @@ const MessageBubble = memo(function MessageBubble({
         )}
 
         {showMenu && (
-          <div className={`absolute top-8 ${isOwn ? 'right-0' : 'left-0'} min-w-35 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-2xl z-50 rounded-2xl overflow-hidden animate-[scaleIn_0.15s_ease-out] backdrop-blur-xl`}>
+          <div className={`absolute bottom-full mb-1 ${isOwn ? 'right-0' : 'left-0'} min-w-35 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-2xl z-50 rounded-2xl overflow-hidden animate-[scaleIn_0.15s_ease-out] backdrop-blur-xl`}>
             <button
               onClick={() => {
                 onReply?.();
@@ -240,6 +310,7 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [deleteGroupConfirm, setDeleteGroupConfirm] = useState(false);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [messageImage, setMessageImage] = useState<{ url: string; publicId?: string } | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -258,7 +329,7 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
   });
 
   const isAdmin = group?.admins.some((a) => a._id === userId) ?? false;
-  const isCreator = group?.createdBy._id === userId;
+  const isCreator = group?.createdBy?._id === userId;
 
   const fetchGroup = useCallback(async (groupId: string) => {
     try {
@@ -659,11 +730,11 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
                         {group.admins.some((a) => a._id === p._id) && (
                           <span className="text-[10px] text-(--foreground)/50 ml-1.5 font-medium uppercase tracking-wide">(admin)</span>
                         )}
-                        {group.createdBy._id === p._id && (
+                        {group.createdBy?._id === p._id && (
                           <span className="text-[10px] text-(--muted) ml-1.5 font-medium uppercase tracking-wide">(owner)</span>
                         )}
                       </span>
-                      {isAdmin && p._id !== userId && p._id !== group.createdBy._id && (
+                      {isAdmin && p._id !== userId && p._id !== group.createdBy?._id && (
                         <button
                           onClick={() => handleRemoveMember(p._id)}
                           className="text-[11px] text-(--danger) hover:underline transition-all duration-150"
@@ -748,6 +819,11 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
                 inputRef.current?.focus();
               }}
               onImageClick={(url) => setLightboxUrl(url)}
+              onMemberClick={(memberId) => setProfileUserId(memberId)}
+              onPostClick={(blogId) => {
+                useChatStore.getState().setTargetBlogId(blogId);
+                useChatStore.getState().setActiveView("blog");
+              }}
             />
           );
         })}
@@ -909,6 +985,14 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
         variant="danger"
         onConfirm={handleDeleteGroup}
         onCancel={() => setDeleteGroupConfirm(false)}
+      />
+
+      {/* User Profile Modal */}
+      <UserProfileModal
+        isOpen={!!profileUserId}
+        userId={profileUserId || ""}
+        onClose={() => setProfileUserId(null)}
+        groupId={activeGroupId || undefined}
       />
     </div>
   );

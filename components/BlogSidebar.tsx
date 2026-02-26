@@ -135,7 +135,7 @@ export default function BlogSidebar({ userId, onSelectPost, onSelectUser, onClos
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder={searchType === "posts" ? "Search posts..." : "Search users..."}
-                            className="w-full pl-10 pr-4 py-2.5 bg-zinc-100 dark:bg-zinc-800 border-0 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
+                            className="w-full pl-10 pr-4 py-2.5 bg-zinc-100 dark:bg-zinc-800 border-0 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#948979] transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
                         />
                     </div>
                     {/* Close button for mobile */}
@@ -157,7 +157,7 @@ export default function BlogSidebar({ userId, onSelectPost, onSelectUser, onClos
                     <button
                         onClick={() => setSearchType("posts")}
                         className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all duration-200 ${searchType === "posts"
-                            ? "bg-white dark:bg-zinc-700 shadow-sm text-blue-600 dark:text-blue-400"
+                            ? "bg-white dark:bg-zinc-700 shadow-sm text-[#948979] dark:text-[#DFD0B8]/70"
                             : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300"
                             }`}
                     >
@@ -172,7 +172,7 @@ export default function BlogSidebar({ userId, onSelectPost, onSelectUser, onClos
                     <button
                         onClick={() => setSearchType("users")}
                         className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all duration-200 ${searchType === "users"
-                            ? "bg-white dark:bg-zinc-700 shadow-sm text-blue-600 dark:text-blue-400"
+                            ? "bg-white dark:bg-zinc-700 shadow-sm text-[#948979] dark:text-[#DFD0B8]/70"
                             : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300"
                             }`}
                     >
@@ -264,7 +264,7 @@ export default function BlogSidebar({ userId, onSelectPost, onSelectUser, onClos
                         {/* Trending Posts */}
                         {trendingPosts.length > 0 && (
                             <div className="mb-4">
-                                <h3 className="px-4 py-2.5 text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider flex items-center gap-2">
+                                <h3 className="px-4 py-2.5 text-xs font-semibold text-[#948979] dark:text-[#DFD0B8]/70 uppercase tracking-wider flex items-center gap-2">
                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                       <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
                                       <polyline points="14 2 14 8 20 8" />
@@ -295,7 +295,7 @@ export default function BlogSidebar({ userId, onSelectPost, onSelectUser, onClos
                         {/* Recent Users */}
                         {recentUsers.length > 0 && (
                             <div>
-                                <h3 className="px-4 py-2.5 text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider flex items-center gap-2">
+                                <h3 className="px-4 py-2.5 text-xs font-semibold text-[#948979] dark:text-[#DFD0B8]/70 uppercase tracking-wider flex items-center gap-2">
                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                                       <circle cx="12" cy="7" r="4" />

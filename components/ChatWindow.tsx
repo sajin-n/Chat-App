@@ -6,6 +6,7 @@ import { useUploadThing } from "@/lib/uploadthing";
 import { useChatStore } from "@/lib/store";
 import ReportModal from "@/components/ReportModal";
 import ConfirmModal from "@/components/ConfirmModal";
+import UserProfileModal from "@/components/UserProfileModal";
 
 type MessageStatus = "sending" | "sent" | "failed";
 
@@ -39,6 +40,7 @@ const MessageBubble = memo(function MessageBubble({
   onRetry,
   onReply,
   onImageClick,
+  onPostClick,
 }: {
   msg: Message;
   isOwn: boolean;
@@ -46,18 +48,37 @@ const MessageBubble = memo(function MessageBubble({
   onRetry?: () => void;
   onReply?: () => void;
   onImageClick?: (url: string) => void;
+  onPostClick?: (blogId: string) => void;
 }) {
   const [showMenu, setShowMenu] = useState(false);
   const [swipeX, setSwipeX] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
   const touchStartX = useRef(0);
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const didLongPress = useRef(false);
+
+  // Detect shared post: format is [shared_post:BLOG_ID]...
+  const sharedPostMatch = msg.content?.match(/^\[shared_post:([a-f0-9]+)\]/);
+  const isSharedPost = !!sharedPostMatch;
+  const sharedBlogId = sharedPostMatch?.[1] || "";
+  const sharedPostContent = isSharedPost ? msg.content.replace(/^\[shared_post:[a-f0-9]+\]/, "") : "";
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
     setIsSwiping(true);
+    didLongPress.current = false;
+    longPressTimer.current = setTimeout(() => {
+      didLongPress.current = true;
+      setShowMenu(true);
+      if (navigator.vibrate) navigator.vibrate(20);
+    }, 500);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
     if (!isSwiping) return;
     const diff = e.touches[0].clientX - touchStartX.current;
     // Only allow right swipe, max 80px
@@ -65,6 +86,16 @@ const MessageBubble = memo(function MessageBubble({
   };
 
   const handleTouchEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    if (didLongPress.current) {
+      didLongPress.current = false;
+      setSwipeX(0);
+      setIsSwiping(false);
+      return;
+    }
     if (swipeX > 50 && onReply) {
       onReply();
       // Haptic feedback if available
@@ -117,25 +148,57 @@ const MessageBubble = memo(function MessageBubble({
           </div>
         )}
 
-        {msg.imageUrl && (
+        {isSharedPost ? (
           <button
-            type="button"
-            onClick={() => onImageClick?.(msg.imageUrl!)}
-            className="block w-full cursor-zoom-in"
+            onClick={() => onPostClick?.(sharedBlogId)}
+            className={`block w-full text-left rounded-xl overflow-hidden border ${isOwn ? 'border-white/20 bg-white/10' : 'border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50'} hover:opacity-90 transition-opacity cursor-pointer`}
           >
-            <Image
-              src={msg.imageUrl}
-              alt="Message"
-              width={300}
-              height={250}
-              className="w-full rounded-2xl mb-2 max-h-64 object-cover hover:opacity-90 transition-opacity"
-            />
+            {msg.imageUrl && (
+              <Image
+                src={msg.imageUrl}
+                alt="Post image"
+                width={300}
+                height={160}
+                className="w-full h-32 object-cover"
+              />
+            )}
+            <div className="p-3">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isOwn ? 'text-white/70' : 'text-[#948979]'}>
+                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                  <polyline points="14 2 14 8 20 8" />
+                </svg>
+                <span className={`text-xs font-semibold ${isOwn ? 'text-white/80' : 'text-[#948979] dark:text-[#DFD0B8]/70'}`}>Shared Post</span>
+              </div>
+              <p className={`text-[13px] leading-snug line-clamp-3 ${isOwn ? 'text-white/90' : 'text-zinc-700 dark:text-zinc-300'}`}>
+                {sharedPostContent.replace(/^📄 Shared a post by @[^:]+:\s*\n*"?/, '').replace(/"$/, '')}
+              </p>
+              <span className={`text-[11px] mt-2 block ${isOwn ? 'text-white/50' : 'text-zinc-400'}`}>Tap to view post →</span>
+            </div>
           </button>
-        )}
-        {msg.content && (
-          <p className={`overflow-wrap-break-word text-[15px] leading-relaxed ${isOwn ? 'text-white' : 'text-zinc-800 dark:text-zinc-100'}`}>
-            {msg.content}
-          </p>
+        ) : (
+          <>
+            {msg.imageUrl && (
+              <button
+                type="button"
+                onClick={() => onImageClick?.(msg.imageUrl!)}
+                className="block w-full cursor-zoom-in"
+              >
+                <Image
+                  src={msg.imageUrl}
+                  alt="Message"
+                  width={300}
+                  height={250}
+                  className="w-full rounded-2xl mb-2 max-h-64 object-cover hover:opacity-90 transition-opacity"
+                />
+              </button>
+            )}
+            {msg.content && (
+              <p className={`overflow-wrap-break-word text-[15px] leading-relaxed ${isOwn ? 'text-white' : 'text-zinc-800 dark:text-zinc-100'}`}>
+                {msg.content}
+              </p>
+            )}
+          </>
         )}
 
         <div className="flex items-center justify-between gap-2 mt-1">
@@ -183,7 +246,7 @@ const MessageBubble = memo(function MessageBubble({
         )}
 
         {showMenu && (
-          <div className={`absolute top-8 ${isOwn ? 'right-0' : 'left-0'} min-w-35 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-2xl z-50 rounded-2xl overflow-hidden animate-[scaleIn_0.15s_ease-out] backdrop-blur-xl`}>
+          <div className={`absolute bottom-full mb-1 ${isOwn ? 'right-0' : 'left-0'} min-w-35 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-2xl z-50 rounded-2xl overflow-hidden animate-[scaleIn_0.15s_ease-out] backdrop-blur-xl`}>
             <button
               onClick={() => {
                 onReply?.();
@@ -255,6 +318,7 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [clearChatConfirm, setClearChatConfirm] = useState(false);
   const [deleteChatConfirm, setDeleteChatConfirm] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   const getOtherParticipant = useCallback(() => {
     return chat?.participants.find((p) => p._id !== userId);
@@ -605,16 +669,21 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
               <polyline points="15 18 9 12 15 6" />
             </svg>
           </button>
-          <div className="relative">
-            <div className="w-11 h-11 rounded-full bg-linear-to-br from-[#948979] to-[#7d7466] flex items-center justify-center text-base font-bold text-white shadow-lg shadow-[#948979]/30">
-              {otherUser?.username?.[0]?.toUpperCase() || "?"}
+          <button
+            onClick={() => otherUser && setShowProfileModal(true)}
+            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+          >
+            <div className="relative">
+              <div className="w-11 h-11 rounded-full bg-linear-to-br from-[#948979] to-[#7d7466] flex items-center justify-center text-base font-bold text-white shadow-lg shadow-[#948979]/30">
+                {otherUser?.username?.[0]?.toUpperCase() || "?"}
+              </div>
+              <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white dark:border-zinc-900"></div>
             </div>
-            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white dark:border-zinc-900"></div>
-          </div>
-          <div>
-            <h2 className="font-semibold text-base text-zinc-900 dark:text-zinc-100">{otherUser?.username || "Loading..."}</h2>
-            <p className="text-xs text-green-600 dark:text-green-500 font-medium">● Online</p>
-          </div>
+            <div className="text-left">
+              <h2 className="font-semibold text-base text-zinc-900 dark:text-zinc-100">{otherUser?.username || "Loading..."}</h2>
+              <p className="text-xs text-green-600 dark:text-green-500 font-medium">● Online</p>
+            </div>
+          </button>
         </div>
         <div className="relative">
           <button
@@ -695,6 +764,10 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
                 inputRef.current?.focus();
               }}
               onImageClick={(url) => setLightboxUrl(url)}
+              onPostClick={(blogId) => {
+                useChatStore.getState().setTargetBlogId(blogId);
+                useChatStore.getState().setActiveView("blog");
+              }}
             />
           );
         })}
@@ -951,6 +1024,14 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
           />
         </div>
       )}
+
+      {/* User Profile Modal */}
+      <UserProfileModal
+        isOpen={showProfileModal}
+        userId={otherUser?._id || ""}
+        onClose={() => setShowProfileModal(false)}
+        chatId={activeChatId || undefined}
+      />
     </div>
   );
 }

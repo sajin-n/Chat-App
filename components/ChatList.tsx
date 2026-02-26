@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useChatStore } from "@/lib/store";
 import { ChatListSkeleton } from "@/components/Skeleton";
+import UserProfileModal from "@/components/UserProfileModal";
 
 interface Chat {
   _id: string;
@@ -24,6 +25,7 @@ export default function ChatList({ userId }: ChatListProps) {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
   const [deletedUserChatId, setDeletedUserChatId] = useState<string | null>(null);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
 
   const fetchChats = useCallback(async () => {
     try {
@@ -108,22 +110,22 @@ export default function ChatList({ userId }: ChatListProps) {
   }
 
   return (
-    <div className="flex flex-col h-full bg-linear-to-b from-white to-zinc-50 dark:from-zinc-900 dark:to-zinc-950">
+    <div className="flex flex-col h-full bg-linear-to-b from-[#DFD0B8] to-[#d4c5a8] dark:from-[#222831] dark:to-[#1c2028]">
       {/* Header with New Chat */}
-      <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm">
-        <form onSubmit={handleNewChat} className="flex gap-0 items-center bg-zinc-100 dark:bg-zinc-800 rounded-2xl pr-1.5 focus-within:ring-2 focus-within:ring-blue-500 transition-all">
+      <div className="p-4 border-b border-[#c4b59e] dark:border-[#393E46] bg-[#DFD0B8]/80 dark:bg-[#222831]/80 backdrop-blur-sm">
+        <form onSubmit={handleNewChat} className="flex gap-0 items-center bg-[#c4b59e]/30 dark:bg-[#393E46] rounded-2xl pr-1.5 focus-within:ring-2 focus-within:ring-[#948979] transition-all">
           <input
             type="text"
             value={newChatUsername}
             onChange={(e) => setNewChatUsername(e.target.value)}
             placeholder="Start chat with..."
-            className="flex-1 px-4 py-3 bg-transparent border-0 rounded-2xl text-sm focus:outline-none placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
+            className="flex-1 px-4 py-3 bg-transparent border-0 rounded-2xl text-sm focus:outline-none placeholder:text-[#948979] dark:placeholder:text-[#948979]/70"
           />
           <button
             type="submit"
             disabled={creating || !newChatUsername.trim()}
             title="Start new chat"
-            className="w-9 h-9 flex items-center justify-center bg-blue-500 text-white rounded-xl hover:bg-blue-600 disabled:opacity-0 disabled:scale-75 transition-all duration-200 shrink-0"
+            className="w-9 h-9 flex items-center justify-center bg-[#948979] text-[#DFD0B8] rounded-xl hover:bg-[#7d7466] disabled:opacity-0 disabled:scale-75 transition-all duration-200 shrink-0"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="5" y1="12" x2="19" y2="12" />
@@ -141,13 +143,13 @@ export default function ChatList({ userId }: ChatListProps) {
         {loading && <ChatListSkeleton count={5} />}
         {!loading && chats.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 px-4">
-            <div className="w-20 h-20 rounded-full bg-linear-to-br from-blue-100 to-blue-200 dark:from-blue-900/30 dark:to-blue-800/30 flex items-center justify-center mb-4 shadow-lg">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-600 dark:text-blue-400">
+            <div className="w-20 h-20 rounded-full bg-linear-to-br from-[#c4b59e]/40 to-[#c4b59e]/60 dark:from-[#393E46] dark:to-[#393E46]/60 flex items-center justify-center mb-4 shadow-lg">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#948979] dark:text-[#DFD0B8]/60">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
             </div>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 text-center font-medium">No chats yet</p>
-            <p className="text-xs text-zinc-400 dark:text-zinc-500 text-center mt-1">Start a conversation above</p>
+            <p className="text-sm text-[#948979] dark:text-[#948979] text-center font-medium">No chats yet</p>
+            <p className="text-xs text-[#948979]/70 dark:text-[#948979]/60 text-center mt-1">Start a conversation above</p>
           </div>
         )}
         <div className="py-2">
@@ -160,27 +162,34 @@ export default function ChatList({ userId }: ChatListProps) {
                 key={chat._id}
                 onClick={() => handleSelectChat(chat._id)}
                 className={`w-full text-left px-4 py-3.5 flex items-center gap-3.5 transition-all relative overflow-hidden group ${isActive
-                  ? "bg-linear-to-r from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 border-l-4 border-blue-500"
+                  ? "bg-linear-to-r from-[#c4b59e]/30 to-[#c4b59e]/50 dark:from-[#393E46]/50 dark:to-[#393E46]/30 border-l-4 border-[#948979]"
                   : hasUnread
-                    ? "bg-blue-50/50 dark:bg-blue-950/10 hover:bg-blue-50 dark:hover:bg-blue-950/20 border-l-4 border-transparent"
-                    : "hover:bg-zinc-100 dark:hover:bg-zinc-800/50 border-l-4 border-transparent"
+                    ? "bg-[#c4b59e]/10 dark:bg-[#393E46]/20 hover:bg-[#c4b59e]/20 dark:hover:bg-[#393E46]/30 border-l-4 border-transparent"
+                    : "hover:bg-[#c4b59e]/15 dark:hover:bg-[#393E46]/30 border-l-4 border-transparent"
                   }`}
               >
                 {/* Active indicator */}
                 {isActive && (
-                  <div className="absolute inset-0 bg-linear-to-r from-blue-500/5 to-transparent pointer-events-none"></div>
+                  <div className="absolute inset-0 bg-linear-to-r from-[#948979]/10 to-transparent pointer-events-none"></div>
                 )}
                 
                 {/* Avatar */}
-                <div className="relative shrink-0">
+                <div
+                  className="relative shrink-0 cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (other?._id) setProfileUserId(other._id);
+                  }}
+                  title={`View ${other?.username || 'user'}'s profile`}
+                >
                   <div className={`w-12 h-12 rounded-full flex items-center justify-center text-base font-bold shadow-md transition-all ${isActive
-                    ? "bg-linear-to-br from-blue-500 to-blue-600 text-white shadow-blue-500/30 scale-105"
-                    : "bg-linear-to-br from-zinc-200 to-zinc-300 dark:from-zinc-700 dark:to-zinc-600 text-zinc-600 dark:text-zinc-300 group-hover:scale-105"
+                    ? "bg-linear-to-br from-[#948979] to-[#7d7466] text-[#DFD0B8] shadow-[#948979]/30 scale-105"
+                    : "bg-linear-to-br from-[#c4b59e]/50 to-[#c4b59e]/70 dark:from-[#393E46] dark:to-[#4a5060] text-[#393E46] dark:text-[#DFD0B8]/80 group-hover:scale-105"
                     }`}>
                     {other?.username?.[0]?.toUpperCase() || "?"}
                   </div>
                   {hasUnread && (
-                    <div className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-blue-500 rounded-full border-2 border-white dark:border-zinc-900 animate-pulse"></div>
+                    <div className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-[#948979] rounded-full border-2 border-[#DFD0B8] dark:border-[#222831] animate-pulse"></div>
                   )}
                 </div>
 
@@ -191,7 +200,7 @@ export default function ChatList({ userId }: ChatListProps) {
                       {other?.username || "Unknown User"}
                     </p>
                     {hasUnread && (
-                      <span className="shrink-0 min-w-6 h-6 px-2 bg-blue-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-md shadow-blue-500/30 animate-[scaleIn_0.2s_ease-out]">
+                      <span className="shrink-0 min-w-6 h-6 px-2 bg-[#948979] text-[#DFD0B8] text-xs font-bold rounded-full flex items-center justify-center shadow-md shadow-[#948979]/30 animate-[scaleIn_0.2s_ease-out]">
                         {chat.unreadCount! > 99 ? "99+" : chat.unreadCount}
                       </span>
                     )}
@@ -210,7 +219,7 @@ export default function ChatList({ userId }: ChatListProps) {
       {/* Deleted User Modal */}
       {deletedUserChatId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-[fadeIn_0.2s_ease-out]">
-          <div className="bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl max-w-sm w-full p-6 animate-[scaleIn_0.2s_ease-out] border border-zinc-200 dark:border-zinc-800" onClick={e => e.stopPropagation()}>
+          <div className="bg-[#DFD0B8] dark:bg-[#222831] rounded-3xl shadow-2xl max-w-sm w-full p-6 animate-[scaleIn_0.2s_ease-out] border border-[#c4b59e] dark:border-[#393E46]" onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-4 mb-4">
               <div className="w-14 h-14 rounded-2xl bg-linear-to-br from-red-100 to-red-200 dark:from-red-900/30 dark:to-red-800/30 flex items-center justify-center shadow-lg">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-600 dark:text-red-400">
@@ -219,17 +228,17 @@ export default function ChatList({ userId }: ChatListProps) {
                   <line x1="23" y1="11" x2="17" y2="11" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
+              <h3 className="text-xl font-bold text-[#222831] dark:text-[#DFD0B8]">
                 User Deleted
               </h3>
             </div>
-            <p className="text-zinc-600 dark:text-zinc-400 mb-6 leading-relaxed">
+            <p className="text-[#393E46] dark:text-[#948979] mb-6 leading-relaxed">
               This user has deleted their account. By clicking OK, this chat will be removed from your list.
             </p>
             <div className="flex justify-end">
               <button
                 onClick={confirmDeleteChat}
-                className="w-full sm:w-auto px-8 py-3 bg-linear-to-r from-blue-500 to-blue-600 text-white rounded-2xl font-semibold hover:shadow-lg hover:shadow-blue-500/30 transition-all shadow-md active:scale-95"
+                className="w-full sm:w-auto px-8 py-3 bg-linear-to-r from-[#948979] to-[#7d7466] text-[#DFD0B8] rounded-2xl font-semibold hover:shadow-lg hover:shadow-[#948979]/30 transition-all shadow-md active:scale-95"
               >
                 OK
               </button>
@@ -237,6 +246,13 @@ export default function ChatList({ userId }: ChatListProps) {
           </div>
         </div>
       )}
+
+      {/* User Profile Modal */}
+      <UserProfileModal
+        isOpen={!!profileUserId}
+        userId={profileUserId || ""}
+        onClose={() => setProfileUserId(null)}
+      />
     </div>
   );
 }
