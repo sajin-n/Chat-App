@@ -85,7 +85,7 @@ const MessageBubble = memo(function MessageBubble({
           className="flex items-center justify-center w-10 transition-opacity"
           style={{ opacity: swipeX / 80 }}
         >
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${swipeX > 50 ? 'bg-blue-500 text-white scale-110' : 'bg-zinc-200 dark:bg-zinc-700'}`}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${swipeX > 50 ? 'bg-[#948979] text-white scale-110' : 'bg-zinc-200 dark:bg-zinc-700'}`}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="9 14 4 9 9 4" />
               <path d="M20 20v-7a4 4 0 0 0-4-4H4" />
@@ -95,7 +95,7 @@ const MessageBubble = memo(function MessageBubble({
       )}
       <div
         className={`relative px-4 py-2.5 max-w-[75%] rounded-[20px] transition-all duration-200 ${isOwn
-          ? "bg-linear-to-br from-blue-500 to-blue-600 text-white rounded-br-md shadow-md shadow-blue-500/20"
+          ? "bg-linear-to-br from-[#948979] to-[#7d7466] text-white rounded-br-md shadow-md shadow-[#948979]/20"
           : "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-bl-md shadow-sm border border-zinc-200/50 dark:border-zinc-700/50"
           }`}
         style={{ transform: `translateX(${swipeX}px)` }}
@@ -107,8 +107,8 @@ const MessageBubble = memo(function MessageBubble({
         {msg.replyTo && (
           <div className={`mb-2 p-2.5 rounded-xl text-xs border-l-[3px] ${isOwn
             ? 'bg-white/15 border-white/40 backdrop-blur-sm'
-            : 'bg-zinc-100 dark:bg-zinc-700/50 border-blue-500'}`}>
-            <p className={`font-semibold mb-1 ${isOwn ? 'text-white/90' : 'text-blue-600 dark:text-blue-400'}`}>
+            : 'bg-zinc-100 dark:bg-zinc-700/50 border-[#948979]'}`}>
+            <p className={`font-semibold mb-1 ${isOwn ? 'text-white/90' : 'text-[#948979] dark:text-[#DFD0B8]/70'}`}>
               {msg.replyTo.senderId?.username || 'Unknown'}
             </p>
             <p className={`line-clamp-2 ${isOwn ? 'text-white/75' : 'text-zinc-600 dark:text-zinc-400'}`}>
@@ -189,9 +189,9 @@ const MessageBubble = memo(function MessageBubble({
                 onReply?.();
                 setShowMenu(false);
               }}
-              className="flex items-center gap-3 w-full px-4 py-3 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors font-medium"
+              className="flex items-center gap-3 w-full px-4 py-3 text-left text-sm text-zinc-700 dark:text-zinc-300 hover:bg-[#c4b59e]/20 dark:hover:bg-[#393E46]/30 transition-colors font-medium"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600 dark:text-blue-400">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#948979] dark:text-[#DFD0B8]/70">
                 <polyline points="9 14 4 9 9 4" />
                 <path d="M20 20v-7a4 4 0 0 0-4-4H4" />
               </svg>
@@ -221,7 +221,7 @@ const MessageBubble = memo(function MessageBubble({
 
 
 export default function ChatWindow({ userId }: ChatWindowProps) {
-  const { activeChatId, setActiveChatId, setMobileMenuOpen } = useChatStore();
+  const { activeChatId, setActiveChatId } = useChatStore();
   const [messages, setMessages] = useState<Message[]>([]);
   const [chat, setChat] = useState<Chat | null>(null);
   const [input, setInput] = useState("");
@@ -597,18 +597,16 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
       <div className="px-4 py-3.5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl shadow-sm">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setMobileMenuOpen(true)}
+            onClick={() => setActiveChatId(null)}
             className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all active:scale-95 desktop-hidden"
-            aria-label="Open menu"
+            aria-label="Back to chats"
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="3" y1="12" x2="21" y2="12" />
-              <line x1="3" y1="6" x2="21" y2="6" />
-              <line x1="3" y1="18" x2="21" y2="18" />
+              <polyline points="15 18 9 12 15 6" />
             </svg>
           </button>
           <div className="relative">
-            <div className="w-11 h-11 rounded-full bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center text-base font-bold text-white shadow-lg shadow-blue-500/30">
+            <div className="w-11 h-11 rounded-full bg-linear-to-br from-[#948979] to-[#7d7466] flex items-center justify-center text-base font-bold text-white shadow-lg shadow-[#948979]/30">
               {otherUser?.username?.[0]?.toUpperCase() || "?"}
             </div>
             <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white dark:border-zinc-900"></div>
@@ -658,7 +656,7 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
             {/* Sent message skeleton */}
             <div className="flex justify-end">
               <div className="space-y-1 flex flex-col items-end">
-                <div className="h-12 w-40 rounded-2xl bg-linear-to-br from-blue-400 to-blue-600 animate-pulse rounded-br-md" />
+                <div className="h-12 w-40 rounded-2xl bg-linear-to-br from-[#948979] to-[#7d7466] animate-pulse rounded-br-md" />
                 <div className="h-3 w-12 bg-zinc-200 dark:bg-zinc-800 animate-pulse rounded" />
               </div>
             </div>
@@ -674,8 +672,8 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
         )}
         {!loading && messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full">
-            <div className="w-20 h-20 rounded-full bg-linear-to-br from-blue-100 to-blue-200 dark:from-blue-900/30 dark:to-blue-800/30 flex items-center justify-center mb-4 shadow-lg">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-600 dark:text-blue-400">
+            <div className="w-20 h-20 rounded-full bg-linear-to-br from-[#c4b59e]/40 to-[#c4b59e]/60 dark:from-[#393E46] dark:to-[#393E46]/60 flex items-center justify-center mb-4 shadow-lg">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#948979] dark:text-[#DFD0B8]/70">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
             </div>
@@ -703,9 +701,9 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
         {othersTyping && (
           <div className="flex gap-2 items-center text-zinc-500 dark:text-zinc-400 text-sm italic pl-2 animate-pulse">
             <div className="flex gap-1">
-              <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-              <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-              <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+              <span className="w-2 h-2 bg-[#948979] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+              <span className="w-2 h-2 bg-[#948979] rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+              <span className="w-2 h-2 bg-[#948979] rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
             </div>
             typing...
           </div>
@@ -715,10 +713,10 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
 
       {/* Reply Preview Bar */}
       {replyingTo && (
-        <div className="shrink-0 px-4 py-3 border-t border-zinc-200 dark:border-zinc-800 bg-linear-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 flex items-center gap-3 animate-[slideDown_0.2s_ease-out]">
-          <div className="w-1 h-12 bg-linear-to-b from-blue-500 to-blue-600 rounded-full shadow-lg shadow-blue-500/30" />
+        <div className="shrink-0 px-4 py-3 border-t border-zinc-200 dark:border-zinc-800 bg-linear-to-r from-[#c4b59e]/20 to-[#c4b59e]/40 dark:from-[#393E46]/30 dark:to-[#393E46]/20 flex items-center gap-3 animate-[slideDown_0.2s_ease-out]">
+          <div className="w-1 h-12 bg-linear-to-b from-[#948979] to-[#7d7466] rounded-full shadow-lg shadow-[#948979]/30" />
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-0.5">
+            <p className="text-xs font-semibold text-[#948979] dark:text-[#DFD0B8]/70 mb-0.5">
               Replying to {replyingTo.senderId.username}
             </p>
             <p className="text-sm text-zinc-700 dark:text-zinc-300 truncate">
@@ -789,7 +787,7 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
             className="w-11 h-11 rounded-2xl flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
           >
             {isUploading ? (
-              <svg className="animate-spin w-5 h-5 text-blue-500" viewBox="0 0 24 24">
+              <svg className="animate-spin w-5 h-5 text-[#948979]" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
@@ -806,7 +804,7 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
               value={input}
               onChange={handleInputChange}
               placeholder="Type a message..."
-              className="w-full px-5 py-3.5 bg-zinc-100 dark:bg-zinc-800 border-0 rounded-3xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-[15px] placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
+              className="w-full px-5 py-3.5 bg-zinc-100 dark:bg-zinc-800 border-0 rounded-3xl focus:outline-none focus:ring-2 focus:ring-[#948979] transition-all text-[15px] placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
               disabled={sending}
             />
           </div>
@@ -814,7 +812,7 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
             type="submit"
             title="Send message"
             disabled={sending || (!input.trim() && !messageImage)}
-            className="w-11 h-11 bg-linear-to-br from-blue-500 to-blue-600 text-white font-medium rounded-full hover:shadow-lg hover:shadow-blue-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center active:scale-95"
+            className="w-11 h-11 bg-linear-to-br from-[#948979] to-[#7d7466] text-white font-medium rounded-full hover:shadow-lg hover:shadow-[#948979]/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center active:scale-95"
           >
             {sending ? (
               <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24">
