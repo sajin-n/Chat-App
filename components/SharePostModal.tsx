@@ -73,7 +73,7 @@ export default function SharePostModal({
     setSending(chatId);
 
     try {
-      const shareContent = `📄 Shared a post by @${blog.authorId.username}:\n\n"${blog.content.substring(0, 200)}${blog.content.length > 200 ? "..." : ""}"`;
+      const shareContent = `[shared_post:${blog._id}]📄 Shared a post by @${blog.authorId.username}:\n\n"${blog.content.substring(0, 200)}${blog.content.length > 200 ? "..." : ""}"`;
 
       const endpoint = isGroup
         ? `/api/groups/${chatId}/messages`
