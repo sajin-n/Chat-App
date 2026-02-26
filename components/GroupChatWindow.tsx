@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useChatStore } from "@/lib/store";
 import ConfirmModal from "@/components/ConfirmModal";
 import { useUploadThing } from "@/lib/uploadthing";
+import UserProfileModal from "@/components/UserProfileModal";
 
 type MessageStatus = "sending" | "sent" | "failed";
 
@@ -41,12 +42,14 @@ const MessageBubble = memo(function MessageBubble({
   onDelete,
   onReply,
   onImageClick,
+  onMemberClick,
 }: {
   msg: Message;
   isOwn: boolean;
   onDelete?: () => void;
   onReply?: () => void;
   onImageClick?: (url: string) => void;
+  onMemberClick?: (userId: string) => void;
 }) {
   const [showMenu, setShowMenu] = useState(false);
   const [swipeX, setSwipeX] = useState(0);
@@ -117,9 +120,13 @@ const MessageBubble = memo(function MessageBubble({
         )}
 
         {!isOwn && (
-          <p className={`text-[11px] font-bold mb-1.5 ${isOwn ? 'text-white/80' : 'text-[#948979] dark:text-[#DFD0B8]/70'} tracking-wide uppercase`}>
+          <button
+            onClick={() => onMemberClick?.(msg.senderId._id)}
+            className="text-[11px] font-bold mb-1.5 text-[#948979] dark:text-[#DFD0B8]/70 tracking-wide uppercase hover:underline cursor-pointer"
+            title={`View ${msg.senderId.username}'s profile`}
+          >
             {msg.senderId.username}
-          </p>
+          </button>
         )}
         {msg.imageUrl && (
           <button
@@ -240,6 +247,7 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [deleteGroupConfirm, setDeleteGroupConfirm] = useState(false);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [messageImage, setMessageImage] = useState<{ url: string; publicId?: string } | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -748,6 +756,7 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
                 inputRef.current?.focus();
               }}
               onImageClick={(url) => setLightboxUrl(url)}
+              onMemberClick={(memberId) => setProfileUserId(memberId)}
             />
           );
         })}
@@ -909,6 +918,14 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
         variant="danger"
         onConfirm={handleDeleteGroup}
         onCancel={() => setDeleteGroupConfirm(false)}
+      />
+
+      {/* User Profile Modal */}
+      <UserProfileModal
+        isOpen={!!profileUserId}
+        userId={profileUserId || ""}
+        onClose={() => setProfileUserId(null)}
+        groupId={activeGroupId || undefined}
       />
     </div>
   );
