@@ -11,15 +11,19 @@
 @custom-variant ut-uploading (&[data-state="uploading"]);
 
 :root {
-  --background: #fafafa;
-  --foreground: #0a0a0a;
-  --border: #e5e5e5;
-  --border-hover: #d4d4d4;
-  --muted: #737373;
-  --accent: #171717;
-  --accent-foreground: #fafafa;
+  --background: #DFD0B8;
+  --foreground: #222831;
+  --border: #c4b59e;
+  --border-hover: #b0a28c;
+  --muted: #948979;
+  --accent: #393E46;
+  --accent-foreground: #DFD0B8;
   --success: #22c55e;
   --danger: #ef4444;
+  --pablo-darkest: #222831;
+  --pablo-dark: #393E46;
+  --pablo-muted: #948979;
+  --pablo-light: #DFD0B8;
 }
 
 @theme inline {
@@ -31,13 +35,13 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #fafafa;
-    --border: #262626;
-    --border-hover: #404040;
-    --muted: #a3a3a3;
-    --accent: #fafafa;
-    --accent-foreground: #0a0a0a;
+    --background: #222831;
+    --foreground: #DFD0B8;
+    --border: #393E46;
+    --border-hover: #4a5060;
+    --muted: #948979;
+    --accent: #DFD0B8;
+    --accent-foreground: #222831;
   }
 }
 
@@ -82,7 +86,7 @@ body {
 
 /* Focus styles */
 *:focus-visible {
-  outline: 2px solid rgb(59 130 246);
+  outline: 2px solid #948979;
   outline-offset: 2px;
 }
 
@@ -232,6 +236,17 @@ body {
   }
 }
 
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
 @keyframes scaleIn {
   from {
     opacity: 0;
@@ -251,7 +266,7 @@ button, a, input, select, textarea {
 /* Improved focus states */
 button:focus-visible,
 a:focus-visible {
-  outline: 2px solid rgb(59 130 246);
+  outline: 2px solid #948979;
   outline-offset: 2px;
   border-radius: 0.5rem;
 }
