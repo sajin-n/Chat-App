@@ -9,6 +9,7 @@ import GroupChatWindow from "@/components/GroupChatWindow";
 import BlogFeed from "@/components/BlogFeed";
 import BlogSidebar from "@/components/BlogSidebar";
 import UserProfile from "@/components/UserProfile";
+import UserProfileModal from "@/components/UserProfileModal";
 import { ErrorBoundary, ChatErrorFallback } from "@/components/ErrorBoundary";
 
 interface ChatContainerProps {
@@ -19,6 +20,7 @@ export default function ChatContainer({ userId }: ChatContainerProps) {
   const { activeView, setActiveView, mobileMenuOpen, setMobileMenuOpen, activeChatId, activeGroupId } = useChatStore();
   const [showProfile, setShowProfile] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [sidebarProfileUserId, setSidebarProfileUserId] = useState<string | null>(null);
 
   const hasActiveConversation = activeView === "chats" ? !!activeChatId : !!activeGroupId;
   // On mobile, auto-show the sidebar full-screen when no conversation is selected (chats/groups only)
@@ -115,6 +117,7 @@ export default function ChatContainer({ userId }: ChatContainerProps) {
                   useChatStore.getState().setTargetBlogId(blogId);
                   setMobileMenuOpen(false);
                 }}
+                onSelectUser={(uid) => setSidebarProfileUserId(uid)}
                 onClose={() => setMobileMenuOpen(false)}
               />
             )}
@@ -280,6 +283,13 @@ export default function ChatContainer({ userId }: ChatContainerProps) {
           </div>
         </nav>
       )}
+
+      {/* User Profile Modal (from sidebar user search) */}
+      <UserProfileModal
+        isOpen={!!sidebarProfileUserId}
+        userId={sidebarProfileUserId || ""}
+        onClose={() => setSidebarProfileUserId(null)}
+      />
     </div>
   );
 }
