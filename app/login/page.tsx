@@ -10,6 +10,7 @@ function LoginForm() {
   const [isRegister, setIsRegister] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
@@ -161,16 +162,41 @@ function LoginForm() {
             />
           </div>
 
-          <div className="input-group">
+          <div className="input-group password-group">
             <input
               name="password"
-              type="password"
+              type={showPassword ? "text" : "password"}
               placeholder="Password"
               required
               minLength={6}
               className="auth-input"
               autoComplete={isRegister ? "new-password" : "current-password"}
             />
+            <button
+              type="button"
+              className="password-toggle"
+              onMouseDown={() => setShowPassword(true)}
+              onMouseUp={() => setShowPassword(false)}
+              onMouseLeave={() => setShowPassword(false)}
+              onTouchStart={() => setShowPassword(true)}
+              onTouchEnd={() => setShowPassword(false)}
+              tabIndex={-1}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                  <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                  <line x1="1" y1="1" x2="23" y2="23" />
+                  <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+                </svg>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              )}
+            </button>
           </div>
 
           {error && (
@@ -239,7 +265,7 @@ const globalStyles = `
     align-items: center;
     justify-content: center;
     padding: 1.5rem;
-    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%);
+    background: linear-gradient(135deg, #222831 0%, #393E46 50%, #222831 100%);
     position: relative;
     overflow: hidden;
   }
@@ -251,8 +277,8 @@ const globalStyles = `
     left: -50%;
     width: 200%;
     height: 200%;
-    background: radial-gradient(circle at 30% 40%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
-                radial-gradient(circle at 70% 60%, rgba(236, 72, 153, 0.06) 0%, transparent 50%);
+    background: radial-gradient(circle at 30% 40%, rgba(148, 137, 121, 0.12) 0%, transparent 50%),
+                radial-gradient(circle at 70% 60%, rgba(223, 208, 184, 0.08) 0%, transparent 50%);
     animation: gradientShift 15s ease infinite;
   }
 
@@ -265,13 +291,13 @@ const globalStyles = `
     position: relative;
     width: 100%;
     max-width: 440px;
-    background: rgba(20, 20, 20, 0.8);
+    background: rgba(34, 40, 49, 0.85);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(223, 208, 184, 0.1);
     border-radius: 20px;
     padding: 3rem 2.5rem;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5),
-                0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+                0 0 0 1px rgba(223, 208, 184, 0.05) inset;
     animation: slideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
@@ -293,7 +319,7 @@ const globalStyles = `
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.5), transparent);
+    background: linear-gradient(90deg, transparent, rgba(223, 208, 184, 0.5), transparent);
     border-radius: 20px 20px 0 0;
   }
 
@@ -301,7 +327,7 @@ const globalStyles = `
     font-family: 'DM Serif Display', serif;
     font-size: 2rem;
     font-weight: 400;
-    color: #ffffff;
+    color: #DFD0B8;
     margin: 0 0 0.5rem 0;
     letter-spacing: -0.02em;
     animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.1s backwards;
@@ -310,7 +336,7 @@ const globalStyles = `
   .auth-subtitle {
     font-family: 'DM Sans', sans-serif;
     font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(223, 208, 184, 0.55);
     margin: 0 0 2.5rem 0;
     font-weight: 400;
     animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s backwards;
@@ -342,28 +368,57 @@ const globalStyles = `
     font-family: 'DM Sans', sans-serif;
     width: 100%;
     padding: 1rem 1.25rem;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(57, 62, 70, 0.4);
+    border: 1px solid rgba(223, 208, 184, 0.1);
     border-radius: 12px;
-    color: #ffffff;
+    color: #DFD0B8;
     font-size: 0.95rem;
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     outline: none;
   }
 
+  .password-group {
+    position: relative;
+  }
+
+  .password-group .auth-input {
+    padding-right: 3rem;
+  }
+
+  .password-toggle {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    padding: 0.35rem;
+    cursor: pointer;
+    color: rgba(223, 208, 184, 0.35);
+    transition: color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+  }
+
+  .password-toggle:hover {
+    color: rgba(223, 208, 184, 0.7);
+  }
+
   .auth-input::placeholder {
-    color: rgba(255, 255, 255, 0.3);
+    color: rgba(223, 208, 184, 0.35);
   }
 
   .auth-input:focus {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(139, 92, 246, 0.5);
-    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1);
+    background: rgba(57, 62, 70, 0.6);
+    border-color: rgba(223, 208, 184, 0.35);
+    box-shadow: 0 0 0 4px rgba(223, 208, 184, 0.08);
     transform: translateY(-1px);
   }
 
   .auth-input:hover:not(:focus) {
-    border-color: rgba(255, 255, 255, 0.12);
+    border-color: rgba(223, 208, 184, 0.18);
   }
 
   .error-message {
@@ -388,10 +443,10 @@ const globalStyles = `
     font-family: 'DM Sans', sans-serif;
     width: 100%;
     padding: 1rem 1.5rem;
-    background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+    background: linear-gradient(135deg, #948979 0%, #DFD0B8 100%);
     border: none;
     border-radius: 12px;
-    color: #ffffff;
+    color: #222831;
     font-size: 0.95rem;
     font-weight: 600;
     cursor: pointer;
@@ -399,7 +454,7 @@ const globalStyles = `
     position: relative;
     overflow: hidden;
     margin-top: 0.5rem;
-    box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
+    box-shadow: 0 4px 20px rgba(148, 137, 121, 0.3);
   }
 
   .auth-button::before {
@@ -409,7 +464,7 @@ const globalStyles = `
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
     transition: left 0.5s;
   }
 
@@ -419,7 +474,7 @@ const globalStyles = `
 
   .auth-button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 30px rgba(139, 92, 246, 0.4);
+    box-shadow: 0 6px 30px rgba(148, 137, 121, 0.4);
   }
 
   .auth-button:active {
@@ -445,7 +500,7 @@ const globalStyles = `
     content: '';
     flex: 1;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    background: linear-gradient(90deg, transparent, rgba(223, 208, 184, 0.15), transparent);
   }
 
   .toggle-link {
@@ -455,7 +510,7 @@ const globalStyles = `
     padding: 0.75rem;
     background: none;
     border: none;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(223, 208, 184, 0.5);
     font-size: 0.9rem;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -471,12 +526,12 @@ const globalStyles = `
     transform: translateX(-50%);
     width: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.8), transparent);
+    background: linear-gradient(90deg, transparent, rgba(223, 208, 184, 0.7), transparent);
     transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .toggle-link:hover {
-    color: #ffffff;
+    color: #DFD0B8;
   }
 
   .toggle-link:hover::after {
