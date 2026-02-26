@@ -21,6 +21,8 @@ export default function ChatContainer({ userId }: ChatContainerProps) {
   const [currentUser, setCurrentUser] = useState<any>(null);
 
   const hasActiveConversation = activeView === "chats" ? !!activeChatId : !!activeGroupId;
+  // On mobile, auto-show the sidebar full-screen when no conversation is selected (chats/groups only)
+  const autoShowSidebar = !hasActiveConversation && activeView !== "blog";
 
   // Get current user info
   useEffect(() => {
@@ -40,8 +42,8 @@ export default function ChatContainer({ userId }: ChatContainerProps) {
 
   return (
     <div className="flex-1 flex overflow-hidden relative">
-      {/* Mobile overlay */}
-      {mobileMenuOpen && (
+      {/* Mobile overlay - only shown when sidebar is explicitly opened via hamburger (not auto-shown) */}
+      {mobileMenuOpen && !autoShowSidebar && (
         <div
           className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 desktop-hidden transition-opacity duration-200"
           onClick={() => setMobileMenuOpen(false)}
@@ -51,14 +53,15 @@ export default function ChatContainer({ userId }: ChatContainerProps) {
       {/* Sidebar */}
       <aside
         className={`
-          ${activeView === "blog" ? "w-full" : "w-72"} lg:w-80 border-r border-zinc-200 dark:border-zinc-800 flex flex-col bg-white dark:bg-zinc-900 z-50
+          w-full border-r border-[#c4b59e] dark:border-[#393E46] flex flex-col bg-[#DFD0B8] dark:bg-[#222831] z-50
           fixed inset-y-0 left-0 transition-all duration-300 ease-out
           md:relative md:translate-x-0 ${activeView === "blog" ? "md:w-80 lg:w-96" : "md:w-72 lg:w-80"}
-          ${mobileMenuOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"}
+          ${mobileMenuOpen || autoShowSidebar ? "translate-x-0" : "-translate-x-full"}
+          ${mobileMenuOpen && !autoShowSidebar ? "shadow-2xl" : ""}
         `}
       >
         {/* Tabs - Refined with icons */}
-        <div className="flex border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-1 pt-1">
+        <div className="flex border-b border-[#c4b59e] dark:border-[#393E46] bg-[#DFD0B8] dark:bg-[#222831] px-1 pt-1">
           {[
             { key: "chats" as const, label: "Chats", icon: (
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -85,21 +88,21 @@ export default function ChatContainer({ userId }: ChatContainerProps) {
               onClick={() => setActiveView(tab.key)}
               className={`flex-1 py-3 text-xs font-semibold transition-all duration-200 flex items-center justify-center gap-1.5 rounded-t-xl relative ${
                 activeView === tab.key
-                  ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30"
-                  : "text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                  ? "text-[#222831] dark:text-[#DFD0B8] bg-[#c4b59e]/30 dark:bg-[#393E46]/50"
+                  : "text-[#948979] dark:text-[#948979] hover:text-[#393E46] dark:hover:text-[#DFD0B8] hover:bg-[#c4b59e]/20 dark:hover:bg-[#393E46]/30"
               }`}
             >
               {tab.icon}
               {tab.label}
               {activeView === tab.key && (
-                <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-blue-500 rounded-full" />
+                <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-[#948979] rounded-full" />
               )}
             </button>
           ))}
         </div>
 
         {/* List */}
-        <div className="flex-1 overflow-hidden">
+        <div className={`flex-1 overflow-hidden ${autoShowSidebar ? "pb-20 md:pb-0" : ""}`}>
           <ErrorBoundary fallback={<ChatErrorFallback />}>
             {activeView === "chats" ? (
               <ChatList userId={userId} />
@@ -122,12 +125,12 @@ export default function ChatContainer({ userId }: ChatContainerProps) {
       {/* Main content */}
       <main className={`flex-1 flex flex-col min-h-0 overflow-hidden ${!hasActiveConversation && activeView !== "blog" ? "mobile-hidden md:flex" : ""}`}>
         {/* Header bar */}
-        <div className={`shrink-0 px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl flex items-center justify-between ${activeView !== "blog" ? "hidden md:flex" : ""}`}>
+        <div className={`shrink-0 px-4 py-2.5 border-b border-[#c4b59e] dark:border-[#393E46] bg-[#DFD0B8]/95 dark:bg-[#222831]/95 backdrop-blur-xl flex items-center justify-between ${activeView !== "blog" ? "hidden md:flex" : ""}`}>
           <div className="flex items-center gap-3">
             {/* Hamburger menu for mobile */}
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="md:hidden p-2 -ml-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors"
+              className="md:hidden p-2 -ml-1 hover:bg-[#c4b59e]/30 dark:hover:bg-[#393E46] rounded-xl transition-colors"
               aria-label="Open menu"
               title="Open menu"
             >
@@ -137,7 +140,7 @@ export default function ChatContainer({ userId }: ChatContainerProps) {
                 <line x1="3" y1="18" x2="21" y2="18" />
               </svg>
             </button>
-            <span className="font-bold text-lg tracking-tight text-zinc-900 dark:text-zinc-100">
+            <span className="font-bold text-lg tracking-tight text-[#222831] dark:text-[#DFD0B8]">
               {activeView === "blog" ? "Blog" : activeView === "groups" ? "Groups" : "Chat"}
             </span>
           </div>
@@ -145,21 +148,21 @@ export default function ChatContainer({ userId }: ChatContainerProps) {
             {currentUser && (
               <button
                 onClick={() => setShowProfile(true)}
-                className="flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-all active:scale-95"
+                className="flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-[#c4b59e]/30 dark:hover:bg-[#393E46] rounded-xl transition-all active:scale-95"
                 title="View profile"
               >
                 {currentUser.profilePicture ? (
                   <img
                     src={currentUser.profilePicture}
                     alt={currentUser.username}
-                    className="w-7 h-7 rounded-full object-cover ring-2 ring-zinc-200 dark:ring-zinc-700"
+                    className="w-7 h-7 rounded-full object-cover ring-2 ring-[#c4b59e] dark:ring-[#393E46]"
                   />
                 ) : (
-                  <div className="w-7 h-7 rounded-full bg-blue-500 flex items-center justify-center text-xs text-white font-semibold">
+                  <div className="w-7 h-7 rounded-full bg-[#948979] flex items-center justify-center text-xs text-[#DFD0B8] font-semibold">
                     {currentUser.username?.[0]?.toUpperCase() || "U"}
                   </div>
                 )}
-                <span className="font-medium hidden sm:inline text-zinc-700 dark:text-zinc-300">{currentUser.username}</span>
+                <span className="font-medium hidden sm:inline text-[#393E46] dark:text-[#DFD0B8]/80">{currentUser.username}</span>
               </button>
             )}
           </div>
@@ -179,13 +182,13 @@ export default function ChatContainer({ userId }: ChatContainerProps) {
       {/* Profile Modal - Improved */}
       {showProfile && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease-out]">
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 w-full max-w-md max-h-[85vh] overflow-hidden shadow-2xl animate-[scaleIn_0.2s_ease-out]">
+          <div className="bg-[#DFD0B8] dark:bg-[#222831] rounded-2xl border border-[#c4b59e] dark:border-[#393E46] w-full max-w-md max-h-[85vh] overflow-hidden shadow-2xl animate-[scaleIn_0.2s_ease-out]">
             {/* Modal header */}
-            <div className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50 dark:bg-zinc-800/50">
-              <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Profile</h2>
+            <div className="px-5 py-4 border-b border-[#c4b59e] dark:border-[#393E46] flex items-center justify-between bg-[#c4b59e]/20 dark:bg-[#393E46]/30">
+              <h2 className="text-lg font-bold text-[#222831] dark:text-[#DFD0B8]">Profile</h2>
               <button
                 onClick={() => setShowProfile(false)}
-                className="w-8 h-8 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 flex items-center justify-center transition-colors text-zinc-500"
+                className="w-8 h-8 rounded-lg hover:bg-[#c4b59e]/40 dark:hover:bg-[#393E46] flex items-center justify-center transition-colors text-[#948979]"
                 title="Close profile"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -199,7 +202,7 @@ export default function ChatContainer({ userId }: ChatContainerProps) {
               <UserProfile userId={userId} onClose={() => setShowProfile(false)} />
             </div>
             {/* Footer with logout */}
-            <div className="px-5 py-4 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50">
+            <div className="px-5 py-4 border-t border-[#c4b59e] dark:border-[#393E46] bg-[#c4b59e]/20 dark:bg-[#393E46]/30">
               <button
                 onClick={async () => {
                   const { signOut } = await import("next-auth/react");
@@ -216,21 +219,66 @@ export default function ChatContainer({ userId }: ChatContainerProps) {
         </div>
       )}
 
-      {/* Mobile: show placeholder when no conversation selected */}
-      {!hasActiveConversation && activeView !== "blog" && (
-        <div className="flex-1 flex flex-col items-center justify-center gap-4 text-zinc-400 desktop-hidden">
-          <div className="w-16 h-16 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-zinc-400">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
+      {/* Mobile Sticky Bottom Navigation - shown when no conversation is active (chats/groups only) */}
+      {autoShowSidebar && (
+        <nav className="fixed bottom-0 inset-x-0 z-60 md:hidden">
+          <div className="mx-3 mb-3 rounded-2xl bg-[#DFD0B8]/0 dark:bg-[#222831]/0 backdrop-blur-xl border border-[#c4b59e]/40 dark:border-[#393E46]/40 shadow-[0_4px_24px_rgba(34,40,49,0.1)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.3)]">
+            <div className="flex items-center justify-around py-1 px-1">
+              {/* Personal Chats */}
+              <button
+                type="button"
+                onClick={() => setActiveView("chats")}
+                className={`flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl active:scale-95 transition-all duration-200 ${
+                  activeView === "chats"
+                    ? "text-[#222831] dark:text-[#DFD0B8] bg-[#c4b59e]/30 dark:bg-[#393E46]/50"
+                    : "text-[#948979] dark:text-[#948979] hover:text-[#222831] dark:hover:text-[#DFD0B8] hover:bg-[#c4b59e]/20 dark:hover:bg-[#393E46]/30"
+                }`}
+                aria-label="Personal chats"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+                <span className="text-[9px] font-semibold leading-none">Chats</span>
+              </button>
+
+              {/* Blog (center) */}
+              <button
+                type="button"
+                onClick={() => setActiveView("blog")}
+                className="flex flex-col items-center gap-0.5 px-4 py-1 rounded-xl relative group active:scale-95 transition-all duration-200"
+                aria-label="Blog"
+              >
+                <div className="w-9 h-9 rounded-full bg-[#393E46] dark:bg-[#DFD0B8] text-[#DFD0B8] dark:text-[#222831] flex items-center justify-center shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all duration-200">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                    <polyline points="14 2 14 8 20 8" />
+                  </svg>
+                </div>
+                <span className="text-[9px] font-semibold leading-none text-[#948979] dark:text-[#948979]">Blog</span>
+              </button>
+
+              {/* Group Chats */}
+              <button
+                type="button"
+                onClick={() => setActiveView("groups")}
+                className={`flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl active:scale-95 transition-all duration-200 ${
+                  activeView === "groups"
+                    ? "text-[#222831] dark:text-[#DFD0B8] bg-[#c4b59e]/30 dark:bg-[#393E46]/50"
+                    : "text-[#948979] dark:text-[#948979] hover:text-[#222831] dark:hover:text-[#DFD0B8] hover:bg-[#c4b59e]/20 dark:hover:bg-[#393E46]/30"
+                }`}
+                aria-label="Group chats"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+                <span className="text-[9px] font-semibold leading-none">Groups</span>
+              </button>
+            </div>
           </div>
-          <button
-            onClick={() => setMobileMenuOpen(true)}
-            className="px-5 py-2.5 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-xl font-medium text-sm text-zinc-600 dark:text-zinc-300 transition-colors"
-          >
-            Open {activeView === "chats" ? "Chats" : "Groups"}
-          </button>
-        </div>
+        </nav>
       )}
     </div>
   );
