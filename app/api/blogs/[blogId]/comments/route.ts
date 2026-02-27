@@ -10,6 +10,8 @@ import {
   unauthorizedResponse,
   notFoundResponse,
   serverErrorResponse,
+  badRequestResponse,
+  isValidObjectId,
 } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
 
@@ -24,6 +26,9 @@ export async function POST(
     }
 
     const { blogId } = await params;
+    if (!isValidObjectId(blogId)) {
+      return badRequestResponse("Invalid blog ID");
+    }
     const body = await req.json();
 
     const parsed = createCommentSchema.safeParse(body);
