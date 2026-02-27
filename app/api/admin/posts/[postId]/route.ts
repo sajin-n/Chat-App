@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import { Blog } from "@/lib/models/Blog";
 import { Comment } from "@/lib/models/Comment";
+import { isValidObjectId } from "@/lib/api-response";
+import { logger } from "@/lib/logger";
 
 // DELETE a post
 export async function DELETE(
@@ -16,11 +18,14 @@ export async function DELETE(
     }
 
     const { postId } = await params;
+    if (!isValidObjectId(postId)) {
+        return NextResponse.json({ error: "Invalid post ID" }, { status: 400 });
+    }
 
     await dbConnect();
 
     try {
-        console.log("[Admin] Deleting post:", postId);
+        logger.info("[Admin] Deleting post", { postId });
 
         const post = await Blog.findById(postId);
 
@@ -35,11 +40,11 @@ export async function DELETE(
         // Then delete the post
         await Blog.findByIdAndDelete(postId);
 
-        console.log("[Admin] Post deleted successfully:", postId);
+        logger.info("[Admin] Post deleted successfully", { postId });
 
         return NextResponse.json({ success: true, message: "Post deleted successfully" });
     } catch (error) {
-        console.error("Admin post delete error:", error);
+        logger.error("Admin post delete error", { error: String(error) });
         return NextResponse.json({ error: "Failed to delete post" }, { status: 500 });
     }
 }
