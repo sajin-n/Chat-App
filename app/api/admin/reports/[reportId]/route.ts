@@ -3,6 +3,8 @@ import mongoose from "mongoose";
 import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import { Report } from "@/lib/models/Report";
+import { isValidObjectId } from "@/lib/api-response";
+import { logger } from "@/lib/logger";
 
 // PATCH - Update report status
 export async function PATCH(
@@ -16,6 +18,9 @@ export async function PATCH(
     }
 
     const { reportId } = await params;
+    if (!isValidObjectId(reportId)) {
+        return NextResponse.json({ error: "Invalid report ID" }, { status: 400 });
+    }
     const body = await req.json();
     const { status } = body;
 
@@ -38,7 +43,7 @@ export async function PATCH(
 
         return NextResponse.json({ success: true, report });
     } catch (error) {
-        console.error("Report status update error:", error);
+        logger.error("Report status update error", { error: String(error) });
         return NextResponse.json({ error: "Failed to update report" }, { status: 500 });
     }
 }
@@ -55,6 +60,9 @@ export async function DELETE(
     }
 
     const { reportId } = await params;
+    if (!isValidObjectId(reportId)) {
+        return NextResponse.json({ error: "Invalid report ID" }, { status: 400 });
+    }
 
     await dbConnect();
 
@@ -67,7 +75,7 @@ export async function DELETE(
 
         return NextResponse.json({ success: true, message: "Report deleted successfully" });
     } catch (error) {
-        console.error("Report delete error:", error);
+        logger.error("Report delete error", { error: String(error) });
         return NextResponse.json({ error: "Failed to delete report" }, { status: 500 });
     }
 }
