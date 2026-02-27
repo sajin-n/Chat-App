@@ -5,7 +5,7 @@ import { Chat } from "@/lib/models/Chat";
 import { Message } from "@/lib/models/Message";
 import { User } from "@/lib/models/User";
 import { updateGroupSchema } from "@/lib/validations";
-import { validationErrorResponse, unauthorizedResponse, notFoundResponse, errorResponse, serverErrorResponse } from "@/lib/api-response";
+import { validationErrorResponse, unauthorizedResponse, notFoundResponse, errorResponse, serverErrorResponse, isValidObjectId, badRequestResponse } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
 
 // Get group details
@@ -20,6 +20,10 @@ export async function GET(
     }
 
     const { groupId } = await params;
+
+    if (!isValidObjectId(groupId)) {
+      return badRequestResponse("Invalid group ID");
+    }
 
     await dbConnect();
 
@@ -55,6 +59,10 @@ export async function PATCH(
     }
 
     const { groupId } = await params;
+
+    if (!isValidObjectId(groupId)) {
+      return badRequestResponse("Invalid group ID");
+    }
 
     const body = await req.json();
     const parsed = updateGroupSchema.safeParse(body);
@@ -158,6 +166,10 @@ export async function DELETE(
     }
 
     const { groupId } = await params;
+
+    if (!isValidObjectId(groupId)) {
+      return badRequestResponse("Invalid group ID");
+    }
 
     await dbConnect();
 
