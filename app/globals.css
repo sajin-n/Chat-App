@@ -54,9 +54,9 @@ html, body {
   height: 100dvh; /* Dynamic viewport height for mobile */
   overflow: hidden; /* Prevent body scroll */
   overscroll-behavior: none; /* Prevent pull-to-refresh and overscroll */
-  position: fixed; /* Lock the body in place */
   width: 100%;
   touch-action: manipulation; /* Improve touch handling */
+  /* Note: position:fixed removed - it breaks mobile virtual keyboard resize handling */
 }
 
 body {
@@ -298,6 +298,22 @@ button:active {
 button, [role="button"] {
   -webkit-user-select: none;
   user-select: none;
+}
+
+/* Mobile virtual keyboard - ensure chat input stays visible */
+@media (max-width: 768px) {
+  /* When keyboard is open, the dvh unit shrinks automatically.
+     This ensures the flex layout adjusts properly. */
+  html, body {
+    height: 100%;
+    height: -webkit-fill-available;
+    height: 100dvh;
+  }
+
+  /* Safe area for phones with home bar / notch */
+  .chat-input-area {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
 }
 
 /* Respect reduced motion preferences */
