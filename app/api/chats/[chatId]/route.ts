@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import { Chat } from "@/lib/models/Chat";
 import { Message } from "@/lib/models/Message";
-import { unauthorizedResponse, notFoundResponse, serverErrorResponse } from "@/lib/api-response";
+import { unauthorizedResponse, notFoundResponse, serverErrorResponse, isValidObjectId, badRequestResponse } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
 
 // Get single chat details
@@ -18,6 +18,10 @@ export async function GET(
     }
 
     const { chatId } = await params;
+
+    if (!isValidObjectId(chatId)) {
+      return badRequestResponse("Invalid chat ID");
+    }
 
     await dbConnect();
 
@@ -49,6 +53,10 @@ export async function DELETE(
     }
 
     const { chatId } = await params;
+
+    if (!isValidObjectId(chatId)) {
+      return badRequestResponse("Invalid chat ID");
+    }
 
     await dbConnect();
 
