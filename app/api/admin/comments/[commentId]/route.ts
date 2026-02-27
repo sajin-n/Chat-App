@@ -4,6 +4,8 @@ import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import { Comment } from "@/lib/models/Comment";
 import { Blog } from "@/lib/models/Blog";
+import { isValidObjectId } from "@/lib/api-response";
+import { logger } from "@/lib/logger";
 
 // DELETE a specific comment
 export async function DELETE(
@@ -17,6 +19,9 @@ export async function DELETE(
     }
 
     const { commentId } = await params;
+    if (!isValidObjectId(commentId)) {
+        return NextResponse.json({ error: "Invalid comment ID" }, { status: 400 });
+    }
 
     await dbConnect();
 
@@ -41,7 +46,7 @@ export async function DELETE(
 
         return NextResponse.json({ success: true, message: "Comment deleted successfully" });
     } catch (error) {
-        console.error("Admin comment delete error:", error);
+        logger.error("Admin comment delete error", { error: String(error) });
         return NextResponse.json({ error: "Failed to delete comment" }, { status: 500 });
     }
 }
