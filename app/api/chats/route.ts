@@ -25,32 +25,55 @@ export async function GET() {
       .sort({ updatedAt: -1 })
       .lean();
 
-    // Calculate unread counts for each chat
+    // Batch unread count calculation using aggregation instead of N+1 queries
     const userId = session.user!.id!;
-    const chatsWithUnread = await Promise.all(
-      chats.map(async (chat) => {
-        // Handle both Map (from mongoose) and plain object (from lean)
-        let lastRead: Date = new Date(0);
-        if (chat.lastReadBy) {
-          if (typeof chat.lastReadBy.get === "function") {
-            lastRead = chat.lastReadBy.get(userId) || new Date(0);
-          } else {
-            lastRead = (chat.lastReadBy as unknown as Record<string, Date>)[userId] || new Date(0);
-          }
-        }
-        
-        const unreadCount = await Message.countDocuments({
-          chatId: chat._id,
-          senderId: { $ne: userId },
-          createdAt: { $gt: lastRead },
-        });
+    const chatIds = chats.map((c) => c._id);
 
-        return {
-          ...chat,
-          unreadCount,
-        };
-      })
-    );
+    // Build per-chat lastRead timestamps
+    const lastReadMap = new Map<string, Date>();
+    for (const chat of chats) {
+      let lastRead = new Date(0);
+      if (chat.lastReadBy) {
+        if (typeof chat.lastReadBy.get === "function") {
+          lastRead = chat.lastReadBy.get(userId) || new Date(0);
+        } else {
+          lastRead = (chat.lastReadBy as unknown as Record<string, Date>)[userId] || new Date(0);
+        }
+      }
+      lastReadMap.set(chat._id.toString(), lastRead);
+    }
+
+    // Single aggregation for all unread counts
+    const unreadCounts = chatIds.length > 0
+      ? await Message.aggregate([
+          {
+            $match: {
+              chatId: { $in: chatIds },
+              senderId: { $ne: new (await import("mongoose")).default.Types.ObjectId(userId) },
+            },
+          },
+          {
+            $group: {
+              _id: "$chatId",
+              messages: { $push: { createdAt: "$createdAt" } },
+            },
+          },
+        ])
+      : [];
+
+    // Count unread per chat based on lastRead
+    const unreadMap = new Map<string, number>();
+    for (const item of unreadCounts) {
+      const chatIdStr = item._id.toString();
+      const lastRead = lastReadMap.get(chatIdStr) || new Date(0);
+      const count = item.messages.filter((m: { createdAt: Date }) => m.createdAt > lastRead).length;
+      unreadMap.set(chatIdStr, count);
+    }
+
+    const chatsWithUnread = chats.map((chat) => ({
+      ...chat,
+      unreadCount: unreadMap.get(chat._id.toString()) || 0,
+    }));
 
     return NextResponse.json(chatsWithUnread);
   } catch (error) {
