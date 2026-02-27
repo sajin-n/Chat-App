@@ -4,6 +4,7 @@ import dbConnect from "@/lib/db";
 import { Comment } from "@/lib/models/Comment";
 import { User } from "@/lib/models/User";
 import { Blog } from "@/lib/models/Blog";
+import { logger } from "@/lib/logger";
 
 // GET all comments with author and blog info
 export async function GET(req: NextRequest) {
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest) {
             })),
         });
     } catch (error) {
-        console.error("Admin comments fetch error:", error);
+        logger.error("Admin comments fetch error", { error: String(error) });
         return NextResponse.json({ error: "Failed to fetch comments" }, { status: 500 });
     }
 }

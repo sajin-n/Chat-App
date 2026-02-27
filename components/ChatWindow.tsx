@@ -319,6 +319,45 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
   const [clearChatConfirm, setClearChatConfirm] = useState(false);
   const [deleteChatConfirm, setDeleteChatConfirm] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  // Mobile virtual keyboard handling - keeps input visible like Instagram
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    let prevHeight = vv.height;
+
+    const handleViewportResize = () => {
+      const currentHeight = vv.height;
+      const heightDiff = prevHeight - currentHeight;
+
+      // Keyboard opened (viewport shrunk by >100px)
+      if (heightDiff > 100 && chatContainerRef.current) {
+        // On some browsers, we need to manually adjust for the keyboard
+        // by setting the container height to the visual viewport height
+        chatContainerRef.current.style.height = `${currentHeight}px`;
+
+        // Scroll messages to bottom so user sees latest messages
+        requestAnimationFrame(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        });
+      }
+
+      // Keyboard closed (viewport grew back)
+      if (heightDiff < -100 && chatContainerRef.current) {
+        chatContainerRef.current.style.height = "";
+      }
+
+      prevHeight = currentHeight;
+    };
+
+    vv.addEventListener("resize", handleViewportResize);
+    return () => {
+      vv.removeEventListener("resize", handleViewportResize);
+    };
+  }, []);
 
   const getOtherParticipant = useCallback(() => {
     return chat?.participants.find((p) => p._id !== userId);
@@ -656,7 +695,7 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
   const otherUser = getOtherParticipant();
 
   return (
-    <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden bg-linear-to-b from-zinc-50 to-white dark:from-zinc-950 dark:to-zinc-900">
+    <div ref={chatContainerRef} className="flex-1 flex flex-col h-full min-h-0 overflow-hidden bg-linear-to-b from-zinc-50 to-white dark:from-zinc-950 dark:to-zinc-900">
       {/* Header */}
       <div className="px-4 py-3.5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl shadow-sm">
         <div className="flex items-center gap-3">
@@ -813,7 +852,7 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
       {/* Input */}
       <form
         onSubmit={handleSend}
-        className="shrink-0 px-4 py-4 border-t border-zinc-200 dark:border-zinc-800 space-y-3 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl"
+        className="shrink-0 px-4 py-3 md:py-4 border-t border-zinc-200 dark:border-zinc-800 space-y-3 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl chat-input-area"
       >
         {messageImage && (
           <div className="relative max-w-25 animate-[scaleIn_0.2s_ease-out]">
@@ -877,8 +916,15 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
               value={input}
               onChange={handleInputChange}
               placeholder="Type a message..."
-              className="w-full px-5 py-3.5 bg-zinc-100 dark:bg-zinc-800 border-0 rounded-3xl focus:outline-none focus:ring-2 focus:ring-[#948979] transition-all text-[15px] placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
+              enterKeyHint="send"
+              className="w-full px-5 py-3.5 bg-zinc-100 dark:bg-zinc-800 border-0 rounded-3xl focus:outline-none focus:ring-2 focus:ring-[#948979] transition-all text-[16px] md:text-[15px] placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
               disabled={sending}
+              onFocus={() => {
+                // On mobile, scroll to latest messages when keyboard opens
+                setTimeout(() => {
+                  messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+                }, 350);
+              }}
             />
           </div>
           <button

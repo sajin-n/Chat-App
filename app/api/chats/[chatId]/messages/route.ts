@@ -4,7 +4,7 @@ import dbConnect from "@/lib/db";
 import { Message } from "@/lib/models/Message";
 import { Chat } from "@/lib/models/Chat";
 import { sendMessageSchema, paginationSchema } from "@/lib/validations";
-import { validationErrorResponse, unauthorizedResponse, notFoundResponse, serverErrorResponse } from "@/lib/api-response";
+import { validationErrorResponse, unauthorizedResponse, notFoundResponse, serverErrorResponse, isValidObjectId, badRequestResponse } from "@/lib/api-response";
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
 
@@ -19,6 +19,11 @@ export async function GET(
     }
 
     const { chatId } = await params;
+
+    if (!isValidObjectId(chatId)) {
+      return badRequestResponse("Invalid chat ID");
+    }
+
     const { searchParams } = new URL(req.url);
 
     const parsed = paginationSchema.safeParse({
@@ -91,6 +96,11 @@ export async function POST(
     }
 
     const { chatId } = await params;
+
+    if (!isValidObjectId(chatId)) {
+      return badRequestResponse("Invalid chat ID");
+    }
+
     const body = await req.json();
 
     const parsed = sendMessageSchema.safeParse(body);

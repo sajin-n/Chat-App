@@ -1,12 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { unauthorizedResponse, serverErrorResponse } from "@/lib/api-response";
-import { logger } from "@/lib/logger";
 
 // In-memory store for typing status (resets on server restart)
-const typingStatus: Map<string, Map<string, number>> = new Map();
+const typingStatus = new Map<string, Map<string, number>>();
 
 const TYPING_TIMEOUT = 3000; // 3 seconds
+const MAX_TRACKED_CHATS = 500; // Prevent unbounded memory growth
+
+// Global cleanup runs at most once per 10 seconds
+let lastGlobalCleanup = 0;
+function globalCleanup() {
+  const now = Date.now();
+  if (now - lastGlobalCleanup < 10_000) return;
+  lastGlobalCleanup = now;
+
+  for (const [chatId, chatTyping] of typingStatus) {
+    for (const [userId, timestamp] of chatTyping) {
+      if (now - timestamp > TYPING_TIMEOUT) {
+        chatTyping.delete(userId);
+      }
+    }
+    if (chatTyping.size === 0) {
+      typingStatus.delete(chatId);
+    }
+  }
+}
 
 function cleanupExpired(chatId: string) {
   const chatTyping = typingStatus.get(chatId);
@@ -51,7 +70,6 @@ export async function GET(
 
     return NextResponse.json({ typing: typingUsers });
   } catch (error) {
-    logger.error("Failed to get typing status", { error: String(error) });
     return serverErrorResponse();
   }
 }
@@ -77,7 +95,14 @@ export async function POST(
       );
     }
 
+    globalCleanup();
+
     if (!typingStatus.has(chatId)) {
+      // Cap the number of tracked chats to prevent memory exhaustion
+      if (typingStatus.size >= MAX_TRACKED_CHATS) {
+        const firstKey = typingStatus.keys().next().value;
+        if (firstKey) typingStatus.delete(firstKey);
+      }
       typingStatus.set(chatId, new Map());
     }
 
@@ -93,7 +118,6 @@ export async function POST(
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    logger.error("Failed to update typing status", { error: String(error) });
     return serverErrorResponse();
   }
 }

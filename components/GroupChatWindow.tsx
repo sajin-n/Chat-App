@@ -315,6 +315,40 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const groupContainerRef = useRef<HTMLDivElement>(null);
+
+  // Mobile virtual keyboard handling - keeps input visible like Instagram
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    let prevHeight = vv.height;
+
+    const handleViewportResize = () => {
+      const currentHeight = vv.height;
+      const heightDiff = prevHeight - currentHeight;
+
+      if (heightDiff > 100 && groupContainerRef.current) {
+        groupContainerRef.current.style.height = `${currentHeight}px`;
+        requestAnimationFrame(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        });
+      }
+
+      if (heightDiff < -100 && groupContainerRef.current) {
+        groupContainerRef.current.style.height = "";
+      }
+
+      prevHeight = currentHeight;
+    };
+
+    vv.addEventListener("resize", handleViewportResize);
+    return () => {
+      vv.removeEventListener("resize", handleViewportResize);
+    };
+  }, []);
+
   const { startUpload } = useUploadThing("chatFileUploader", {
     onClientUploadComplete: (res) => {
       if (res?.[0]) {
@@ -583,7 +617,7 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden bg-linear-to-b from-zinc-50 to-white dark:from-zinc-950 dark:to-zinc-900">
+    <div ref={groupContainerRef} className="flex-1 flex flex-col h-full min-h-0 overflow-hidden bg-linear-to-b from-zinc-50 to-white dark:from-zinc-950 dark:to-zinc-900">
       {/* Header */}
       <div className="px-4 py-3.5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl shadow-sm">
         <div className="flex items-center gap-3">
@@ -882,7 +916,7 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
       {/* Input */}
       <form
         onSubmit={handleSend}
-        className="shrink-0 px-4 py-4 border-t border-zinc-200 dark:border-zinc-800 flex gap-2.5 items-end bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl"
+        className="shrink-0 px-4 py-3 md:py-4 border-t border-zinc-200 dark:border-zinc-800 flex gap-2.5 items-end bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl chat-input-area"
       >
         {/* Upload Button */}
         <input
@@ -924,8 +958,14 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type a message..."
-            className="w-full px-5 py-3.5 bg-zinc-100 dark:bg-zinc-800 border-0 rounded-3xl focus:outline-none focus:ring-2 focus:ring-[#948979] transition-all text-[15px] placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
+            enterKeyHint="send"
+            className="w-full px-5 py-3.5 bg-zinc-100 dark:bg-zinc-800 border-0 rounded-3xl focus:outline-none focus:ring-2 focus:ring-[#948979] transition-all text-[16px] md:text-[15px] placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
             disabled={sending}
+            onFocus={() => {
+              setTimeout(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+              }, 350);
+            }}
           />
         </div>
         <button

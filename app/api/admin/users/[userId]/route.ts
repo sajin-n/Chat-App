@@ -7,6 +7,8 @@ import { Blog } from "@/lib/models/Blog";
 import { Comment } from "@/lib/models/Comment";
 import { Chat } from "@/lib/models/Chat";
 import { Message } from "@/lib/models/Message";
+import { isValidObjectId } from "@/lib/api-response";
+import { logger } from "@/lib/logger";
 
 // GET user details with all their posts
 export async function GET(
@@ -20,11 +22,14 @@ export async function GET(
     }
 
     const { userId } = await params;
+    if (!isValidObjectId(userId)) {
+        return NextResponse.json({ error: "Invalid user ID" }, { status: 400 });
+    }
 
     await dbConnect();
 
     try {
-        console.log("[Admin] Fetching user:", userId);
+        logger.info("[Admin] Fetching user", { userId });
 
         const user = await User.findById(userId)
             .select("_id username email profilePicture createdAt")
@@ -37,13 +42,13 @@ export async function GET(
         // Convert userId to ObjectId for proper query
         const userObjectId = new mongoose.Types.ObjectId(userId);
 
-        console.log("[Admin] Finding posts for user ObjectId:", userObjectId);
+        logger.info("[Admin] Finding posts for user", { userObjectId: userObjectId.toString() });
 
         const posts = await Blog.find({ authorId: userObjectId })
             .sort({ createdAt: -1 })
             .lean();
 
-        console.log("[Admin] Found posts:", posts.length);
+        logger.info("[Admin] Found posts", { count: posts.length });
 
         return NextResponse.json({
             user: { ...user, _id: user._id.toString() },
@@ -57,7 +62,7 @@ export async function GET(
             })),
         });
     } catch (error) {
-        console.error("Admin user fetch error:", error);
+        logger.error("Admin user fetch error", { error: String(error) });
         return NextResponse.json({ error: "Failed to fetch user" }, { status: 500 });
     }
 }
@@ -74,6 +79,9 @@ export async function DELETE(
     }
 
     const { userId } = await params;
+    if (!isValidObjectId(userId)) {
+        return NextResponse.json({ error: "Invalid user ID" }, { status: 400 });
+    }
 
     await dbConnect();
 
@@ -85,6 +93,18 @@ export async function DELETE(
 
         // Delete user's comments
         await Comment.deleteMany({ authorId: userObjectId });
+
+        // Remove user's comments from all blogs' comments arrays
+        await Blog.updateMany(
+            {},
+            { $pull: { comments: { $in: await Comment.find({ authorId: userObjectId }).distinct("_id") } } }
+        );
+
+        // Remove user's likes from all blogs
+        await Blog.updateMany(
+            { likes: userObjectId },
+            { $pull: { likes: userObjectId } }
+        );
 
         // Delete user's messages
         await Message.deleteMany({ senderId: userObjectId });
@@ -108,7 +128,7 @@ export async function DELETE(
 
         return NextResponse.json({ success: true, message: "User deleted successfully" });
     } catch (error) {
-        console.error("Admin user delete error:", error);
+        logger.error("Admin user delete error", { error: String(error) });
         return NextResponse.json({ error: "Failed to delete user" }, { status: 500 });
     }
 }

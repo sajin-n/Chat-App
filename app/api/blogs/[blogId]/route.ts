@@ -10,6 +10,8 @@ import {
   notFoundResponse,
   serverErrorResponse,
   errorResponse,
+  badRequestResponse,
+  isValidObjectId,
 } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
 
@@ -24,6 +26,9 @@ export async function DELETE(
     }
 
     const { blogId } = await params;
+    if (!isValidObjectId(blogId)) {
+      return badRequestResponse("Invalid blog ID");
+    }
 
     await dbConnect();
 
@@ -67,6 +72,9 @@ export async function PATCH(
     }
 
     const { blogId } = await params;
+    if (!isValidObjectId(blogId)) {
+      return badRequestResponse("Invalid blog ID");
+    }
     const body = await req.json();
 
     await dbConnect();

@@ -27,14 +27,17 @@ export async function POST(req: NextRequest) {
     await dbConnect();
 
     const existingUser = await User.findOne({
-      $or: [{ email: normalizedEmail }, { username }],
+      $or: [
+        { email: normalizedEmail },
+        { username: { $regex: new RegExp(`^${username}$`, 'i') } },
+      ],
     });
 
     if (existingUser) {
       return errorResponse("User already exists", 400);
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 12);
 
     const user = await User.create({
       username,

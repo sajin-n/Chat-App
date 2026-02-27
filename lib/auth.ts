@@ -4,10 +4,11 @@ import bcrypt from "bcryptjs";
 import dbConnect from "@/lib/db";
 import { User } from "@/lib/models/User";
 import { authConfig } from "@/lib/auth.config";
+import { logger } from "@/lib/logger";
 
-// Developer credentials
-const DEV_EMAIL = "dev@chatapp.com";
-const DEV_PASSWORD = "bababooy2005";
+// Developer credentials from environment - keep out of source code
+const DEV_EMAIL = process.env.DEV_EMAIL || "dev@chatapp.com";
+const DEV_PASSWORD = process.env.DEV_PASSWORD;
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
@@ -19,23 +20,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        console.log("[Auth] Authorize called with email:", credentials?.email, "type:", typeof credentials?.email);
-
         if (!credentials?.email || !credentials?.password) {
-          console.log("[Auth] Missing credentials - email:", !!credentials?.email, "password:", !!credentials?.password);
           return null;
         }
 
         const email = String(credentials.email).toLowerCase().trim();
         const password = String(credentials.password);
 
-        console.log("[Auth] Checking email:", email);
-
         // Check if developer login
-        if (email === DEV_EMAIL) {
-          console.log("[Auth] Developer email detected, checking password...");
+        if (email === DEV_EMAIL && DEV_PASSWORD) {
           if (password === DEV_PASSWORD) {
-            console.log("[Auth] Developer login successful!");
+            logger.info("Developer login successful");
             return {
               id: "developer",
               email: DEV_EMAIL,
@@ -43,30 +38,28 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               role: "developer",
             };
           }
-          console.log("[Auth] Developer password incorrect");
+          logger.authFailure("Invalid developer password");
           return null;
         }
 
         // Regular user login
         try {
           await dbConnect();
-          console.log("[Auth] DB connected, finding user...");
 
-          const user = await User.findOne({ email });
+          const user = await User.findOne({ email }).select("+password");
 
           if (!user) {
-            console.log("[Auth] User not found:", email);
+            logger.authFailure("User not found", { email });
             return null;
           }
 
           const isValid = await bcrypt.compare(password, user.password);
 
           if (!isValid) {
-            console.log("[Auth] Invalid password for:", email);
+            logger.authFailure("Invalid password", { email });
             return null;
           }
 
-          console.log("[Auth] Login successful:", user.email);
           return {
             id: user._id.toString(),
             email: user.email,
@@ -74,7 +67,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             role: "user",
           };
         } catch (error) {
-          console.error("[Auth] Error in authorize:", error);
+          logger.error("Auth error", { error: String(error) });
           return null;
         }
       },

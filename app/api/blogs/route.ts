@@ -11,6 +11,7 @@ import {
   notFoundResponse,
   serverErrorResponse,
 } from "@/lib/api-response";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
 
 export async function GET(req: NextRequest) {
@@ -67,6 +68,11 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const rateLimit = checkRateLimit(req, "blog");
+  if (!rateLimit.allowed) {
+    return rateLimitResponse(rateLimit.resetIn);
+  }
+
   try {
     const session = await auth();
     if (!session?.user?.id) {

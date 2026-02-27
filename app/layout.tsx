@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import SplashScreen from "@/components/SplashScreen";
@@ -9,6 +9,14 @@ import { ourFileRouter } from "@/app/api/uploadthing/core";
 export const metadata: Metadata = {
   title: "PaBlo",
   description: "Connect · Share · Chat",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({

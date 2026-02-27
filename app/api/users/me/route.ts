@@ -8,6 +8,7 @@ import { Comment } from "@/lib/models/Comment";
 import { Chat } from "@/lib/models/Chat";
 import { Message } from "@/lib/models/Message";
 import { unauthorizedResponse, serverErrorResponse, badRequestResponse } from "@/lib/api-response";
+import { logger } from "@/lib/logger";
 
 export async function GET(req: NextRequest) {
   try {
@@ -85,7 +86,7 @@ export async function PATCH(req: NextRequest) {
 
     return NextResponse.json(user);
   } catch (error) {
-    console.error("Error updating user:", error);
+    logger.error("Error updating user", { error: String(error) });
     return serverErrorResponse();
   }
 }
@@ -103,16 +104,39 @@ export async function DELETE(req: NextRequest) {
     const userObjectId = new mongoose.Types.ObjectId(userId);
 
     // Comprehensive cleanup before deleting user
-    // 1. Delete user's blogs
-    await Blog.deleteMany({ authorId: userObjectId });
+    // 1. Get IDs of user's comments before deleting them
+    const userCommentIds = await Comment.find({ authorId: userObjectId }).distinct("_id");
 
-    // 2. Delete user's comments
-    await Comment.deleteMany({ authorId: userObjectId });
+    // 2. Delete user's blogs and their associated comments
+    const userBlogIds = await Blog.find({ authorId: userObjectId }).distinct("_id");
+    if (userBlogIds.length > 0) {
+      await Comment.deleteMany({ blogId: { $in: userBlogIds } });
+      await Blog.deleteMany({ authorId: userObjectId });
+    }
 
-    // 3. Delete user's messages
+    // 3. Remove user's comments from other blogs' comments arrays, then delete them
+    if (userCommentIds.length > 0) {
+      await Blog.updateMany(
+        { comments: { $in: userCommentIds } },
+        { $pull: { comments: { $in: userCommentIds } } }
+      );
+      await Comment.deleteMany({ authorId: userObjectId });
+    }
+
+    // 4. Remove user's likes from all blogs and comments
+    await Blog.updateMany(
+      { likes: userObjectId },
+      { $pull: { likes: userObjectId } }
+    );
+    await Comment.updateMany(
+      { likes: userObjectId },
+      { $pull: { likes: userObjectId } }
+    );
+
+    // 5. Delete user's messages
     await Message.deleteMany({ senderId: userObjectId });
 
-    // 4. Remove user from all chats (participants and admins)
+    // 6. Remove user from all chats (participants and admins)
     await Chat.updateMany(
       { participants: userObjectId },
       {
@@ -123,19 +147,21 @@ export async function DELETE(req: NextRequest) {
       }
     );
 
-    // 5. Delete chats with no remaining participants
+    // 7. Delete chats with no remaining participants
     await Chat.deleteMany({ participants: { $size: 0 } });
 
-    // 6. Delete the user
+    // 8. Delete the user
     const deletedUser = await User.findByIdAndDelete(userId);
 
     if (!deletedUser) {
       return badRequestResponse("User not found");
     }
 
+    logger.info("User deleted", { userId });
+
     return NextResponse.json({ message: "User deleted successfully" });
   } catch (error) {
-    console.error("Error deleting user:", error);
+    logger.error("Error deleting user", { error: String(error) });
     return serverErrorResponse();
   }
 }

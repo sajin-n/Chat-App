@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import { Report } from "@/lib/models/Report";
+import { logger } from "@/lib/logger";
 
 //GET all reports with populated data
 export async function GET(req: NextRequest) {
@@ -74,7 +75,7 @@ export async function GET(req: NextRequest) {
 
         return NextResponse.json({ reports: populatedReports });
     } catch (error) {
-        console.error("Admin reports fetch error:", error);
+        logger.error("Admin reports fetch error", { error: String(error) });
         return NextResponse.json({ error: "Failed to fetch reports" }, { status: 500 });
     }
 }
