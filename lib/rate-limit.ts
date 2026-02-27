@@ -1,55 +1,74 @@
 import { NextRequest, NextResponse } from "next/server";
 
-interface RateLimitStore {
-  [key: string]: { count: number; resetTime: number };
+interface RateLimitEntry {
+  count: number;
+  resetTime: number;
 }
 
-const store: RateLimitStore = {};
+// Use a Map for better performance + bounded size
+const store = new Map<string, RateLimitEntry>();
+
+// Hard cap to prevent memory exhaustion under heavy load
+const MAX_STORE_SIZE = 10000;
 
 const WINDOW_MS = 60 * 1000; // 1 minute
 const MAX_REQUESTS: Record<string, number> = {
   auth: 10,
   message: 30,
   default: 60,
+  search: 20,
+  blog: 20,
+  report: 5,
 };
 
 function getKey(ip: string, type: string): string {
   return `${type}:${ip}`;
 }
 
+// Periodic cleanup runs at most once per 30 seconds
+let lastCleanup = 0;
 function cleanup() {
   const now = Date.now();
-  for (const key in store) {
-    if (store[key].resetTime < now) {
-      delete store[key];
+  if (now - lastCleanup < 30_000) return;
+  lastCleanup = now;
+
+  for (const [key, entry] of store) {
+    if (entry.resetTime < now) {
+      store.delete(key);
     }
   }
 }
 
 export function checkRateLimit(
   req: NextRequest,
-  type: "auth" | "message" | "default" = "default"
+  type: "auth" | "message" | "default" | "search" | "blog" | "report" = "default"
 ): { allowed: boolean; remaining: number; resetIn: number } {
   // Prefer x-real-ip (set by trusted reverse proxy) over x-forwarded-for (spoofable)
-  // In production, configure your reverse proxy to set x-real-ip from the true client IP
   const ip = req.headers.get("x-real-ip") ?? req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
   const key = getKey(ip, type);
   const now = Date.now();
-  const limit = MAX_REQUESTS[type];
+  const limit = MAX_REQUESTS[type] ?? MAX_REQUESTS.default;
 
   cleanup();
 
-  if (!store[key] || store[key].resetTime < now) {
-    store[key] = { count: 1, resetTime: now + WINDOW_MS };
+  const existing = store.get(key);
+
+  if (!existing || existing.resetTime < now) {
+    // Evict oldest entries if store is too large
+    if (store.size >= MAX_STORE_SIZE) {
+      const firstKey = store.keys().next().value;
+      if (firstKey) store.delete(firstKey);
+    }
+    store.set(key, { count: 1, resetTime: now + WINDOW_MS });
     return { allowed: true, remaining: limit - 1, resetIn: WINDOW_MS };
   }
 
-  store[key].count++;
-  const remaining = Math.max(0, limit - store[key].count);
-  const resetIn = store[key].resetTime - now;
+  existing.count++;
+  const remaining = Math.max(0, limit - existing.count);
+  const resetIn = existing.resetTime - now;
 
   return {
-    allowed: store[key].count <= limit,
+    allowed: existing.count <= limit,
     remaining,
     resetIn,
   };
