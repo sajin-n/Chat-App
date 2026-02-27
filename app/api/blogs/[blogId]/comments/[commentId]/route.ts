@@ -10,6 +10,7 @@ import {
   serverErrorResponse,
   badRequestResponse,
   errorResponse,
+  isValidObjectId,
 } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
 
@@ -24,6 +25,9 @@ export async function PATCH(
     }
 
     const { blogId, commentId } = await params;
+    if (!isValidObjectId(blogId) || !isValidObjectId(commentId)) {
+      return badRequestResponse("Invalid ID");
+    }
     const body = await req.json();
 
     await dbConnect();
@@ -73,6 +77,9 @@ export async function DELETE(
     }
 
     const { blogId, commentId } = await params;
+    if (!isValidObjectId(blogId) || !isValidObjectId(commentId)) {
+      return badRequestResponse("Invalid ID");
+    }
 
     await dbConnect();
 
