@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import { Message } from "@/lib/models/Message";
 import { Chat } from "@/lib/models/Chat";
-import { unauthorizedResponse, notFoundResponse, serverErrorResponse } from "@/lib/api-response";
+import { unauthorizedResponse, notFoundResponse, serverErrorResponse, isValidObjectId, badRequestResponse } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
 
 export async function DELETE(
@@ -17,6 +17,10 @@ export async function DELETE(
     }
 
     const { chatId } = await params;
+
+    if (!isValidObjectId(chatId)) {
+      return badRequestResponse("Invalid chat ID");
+    }
 
     await dbConnect();
 
