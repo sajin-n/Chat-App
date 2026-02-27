@@ -5,11 +5,18 @@ import { Report } from "@/lib/models/Report";
 import { User } from "@/lib/models/User";
 import { Blog } from "@/lib/models/Blog";
 import { Comment } from "@/lib/models/Comment";
+import { isValidObjectId } from "@/lib/api-response";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import mongoose from "mongoose";
 
 // POST - Create a new report
 export async function POST(req: NextRequest) {
     try {
+        const rateLimit = checkRateLimit(req, "report");
+        if (!rateLimit.allowed) {
+            return rateLimitResponse(rateLimit.resetIn);
+        }
+
         const session = await auth();
         if (!session?.user?.id) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -21,6 +28,10 @@ export async function POST(req: NextRequest) {
         // Validate inputs
         if (!reportedType || !reportedId || !reason) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+        }
+
+        if (!isValidObjectId(reportedId)) {
+            return NextResponse.json({ error: "Invalid reported item ID" }, { status: 400 });
         }
 
         if (!["user", "post", "comment"].includes(reportedType)) {
