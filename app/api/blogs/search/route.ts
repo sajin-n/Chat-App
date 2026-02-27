@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import { Blog } from "@/lib/models/Blog";
+import { escapeRegex } from "@/lib/api-response";
 
 export async function GET(req: NextRequest) {
     const session = await auth();
@@ -12,15 +13,16 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const query = searchParams.get("q");
 
-    if (!query || query.length < 2) {
+    if (!query || query.length < 2 || query.length > 100) {
         return NextResponse.json({ blogs: [] });
     }
 
     await dbConnect();
 
     try {
+        const safeQuery = escapeRegex(query);
         const blogs = await Blog.find({
-            content: { $regex: query, $options: "i" },
+            content: { $regex: safeQuery, $options: "i" },
         })
             .populate("authorId", "username profilePicture")
             .sort({ createdAt: -1 })
