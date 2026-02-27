@@ -10,6 +10,8 @@ import {
   unauthorizedResponse,
   notFoundResponse,
   serverErrorResponse,
+  badRequestResponse,
+  isValidObjectId,
 } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
 
@@ -19,6 +21,9 @@ export async function GET(
 ) {
   try {
     const { userId } = await params;
+    if (!isValidObjectId(userId)) {
+      return badRequestResponse("Invalid user ID");
+    }
 
     await dbConnect();
 
