@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ZodError, ZodIssue } from "zod";
+import mongoose from "mongoose";
 
 export interface ApiError {
   error: string;
@@ -37,4 +38,19 @@ export function notFoundResponse(resource = "Resource"): NextResponse<ApiError> 
 
 export function serverErrorResponse(): NextResponse<ApiError> {
   return errorResponse("Internal server error", 500);
+}
+
+/**
+ * Validate a string is a valid MongoDB ObjectId.
+ * Returns false for invalid IDs, preventing CastError exceptions and NoSQL injection via malformed IDs.
+ */
+export function isValidObjectId(id: string): boolean {
+  return mongoose.Types.ObjectId.isValid(id) && new mongoose.Types.ObjectId(id).toString() === id;
+}
+
+/**
+ * Escape special regex characters in user input to prevent ReDoS attacks.
+ */
+export function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
