@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
-import { dbConnect } from "@/lib/db";
+import dbConnect from "@/lib/db";
 import { Notification } from "@/lib/models/Notification";
-import { apiResponse } from "@/lib/api-response";
+import { unauthorizedResponse, notFoundResponse, errorResponse, serverErrorResponse } from "@/lib/api-response";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function PATCH(
@@ -11,7 +11,7 @@ export async function PATCH(
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return apiResponse(null, "Unauthorized", 401);
+      return unauthorizedResponse();
     }
 
     await dbConnect();
@@ -19,11 +19,11 @@ export async function PATCH(
 
     const notification = await Notification.findById(notificationId);
     if (!notification) {
-      return apiResponse(null, "Notification not found", 404);
+      return notFoundResponse("Notification");
     }
 
     if (notification.recipientId.toString() !== session.user.id) {
-      return apiResponse(null, "Forbidden", 403);
+      return errorResponse("Forbidden", 403);
     }
 
     const body = await req.json();
@@ -48,7 +48,7 @@ export async function PATCH(
     );
   } catch (error) {
     console.error("[NOTIFICATION_PATCH]", error);
-    return apiResponse(null, "Internal server error", 500);
+    return serverErrorResponse();
   }
 }
 
@@ -59,7 +59,7 @@ export async function DELETE(
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return apiResponse(null, "Unauthorized", 401);
+      return unauthorizedResponse();
     }
 
     await dbConnect();
@@ -67,11 +67,11 @@ export async function DELETE(
 
     const notification = await Notification.findById(notificationId);
     if (!notification) {
-      return apiResponse(null, "Notification not found", 404);
+      return notFoundResponse("Notification");
     }
 
     if (notification.recipientId.toString() !== session.user.id) {
-      return apiResponse(null, "Forbidden", 403);
+      return errorResponse("Forbidden", 403);
     }
 
     await Notification.findByIdAndDelete(notificationId);
@@ -85,6 +85,6 @@ export async function DELETE(
     );
   } catch (error) {
     console.error("[NOTIFICATION_DELETE]", error);
-    return apiResponse(null, "Internal server error", 500);
+    return serverErrorResponse();
   }
 }

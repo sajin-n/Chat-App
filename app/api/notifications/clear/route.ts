@@ -1,14 +1,14 @@
 import { auth } from "@/lib/auth";
-import { dbConnect } from "@/lib/db";
+import dbConnect from "@/lib/db";
 import { Notification } from "@/lib/models/Notification";
-import { apiResponse } from "@/lib/api-response";
+import { unauthorizedResponse, serverErrorResponse } from "@/lib/api-response";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function PATCH(req: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return apiResponse(null, "Unauthorized", 401);
+      return unauthorizedResponse();
     }
 
     await dbConnect();
@@ -30,7 +30,7 @@ export async function PATCH(req: NextRequest) {
     );
   } catch (error) {
     console.error("[NOTIFICATIONS_MARK_ALL_READ]", error);
-    return apiResponse(null, "Internal server error", 500);
+    return serverErrorResponse();
   }
 }
 
@@ -38,7 +38,7 @@ export async function DELETE(req: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return apiResponse(null, "Unauthorized", 401);
+      return unauthorizedResponse();
     }
 
     await dbConnect();
@@ -59,6 +59,6 @@ export async function DELETE(req: NextRequest) {
     );
   } catch (error) {
     console.error("[NOTIFICATIONS_CLEAR_ALL]", error);
-    return apiResponse(null, "Internal server error", 500);
+    return serverErrorResponse();
   }
 }

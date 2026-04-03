@@ -18,7 +18,7 @@ export function useNotifications() {
     updateUnreadCount,
   } = useNotificationStore();
 
-  const pollingIntervalRef = useRef<NodeJS.Timeout>();
+  const pollingIntervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const fetchNotifications = useCallback(async (unreadOnly = false) => {
     if (!session?.user?.id) return;

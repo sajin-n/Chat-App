@@ -1,14 +1,14 @@
 import { auth } from "@/lib/auth";
-import { dbConnect } from "@/lib/db";
+import dbConnect from "@/lib/db";
 import { Notification } from "@/lib/models/Notification";
-import { apiResponse } from "@/lib/api-response";
+import { unauthorizedResponse, badRequestResponse, serverErrorResponse } from "@/lib/api-response";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.email) {
-      return apiResponse(null, "Unauthorized", 401);
+      return unauthorizedResponse();
     }
 
     await dbConnect();
@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
     );
   } catch (error) {
     console.error("[NOTIFICATIONS_GET]", error);
-    return apiResponse(null, "Internal server error", 500);
+    return serverErrorResponse();
   }
 }
 
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return apiResponse(null, "Unauthorized", 401);
+      return unauthorizedResponse();
     }
 
     await dbConnect();
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
     const { recipientId, type, title, message, senderId, data, actionUrl } = body;
 
     if (!recipientId || !type || !title || !message) {
-      return apiResponse(null, "Missing required fields", 400);
+      return badRequestResponse("Missing required fields");
     }
 
     const notification = new Notification({
@@ -92,6 +92,6 @@ export async function POST(req: NextRequest) {
     );
   } catch (error) {
     console.error("[NOTIFICATIONS_POST]", error);
-    return apiResponse(null, "Internal server error", 500);
+    return serverErrorResponse();
   }
 }
