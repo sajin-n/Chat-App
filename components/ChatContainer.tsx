@@ -8,6 +8,7 @@ import GroupList from "@/components/GroupList";
 import GroupChatWindow from "@/components/GroupChatWindow";
 import BlogFeed from "@/components/BlogFeed";
 import BlogSidebar from "@/components/BlogSidebar";
+import NotificationBell from "@/components/NotificationBell";
 import UserProfile from "@/components/UserProfile";
 import UserProfileModal from "@/components/UserProfileModal";
 import { ErrorBoundary, ChatErrorFallback } from "@/components/ErrorBoundary";
@@ -148,6 +149,7 @@ export default function ChatContainer({ userId }: ChatContainerProps) {
             </span>
           </div>
           <div className="flex items-center gap-2">
+            <NotificationBell />
             {currentUser && (
               <button
                 onClick={() => setShowProfile(true)}
