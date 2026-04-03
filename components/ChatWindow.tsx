@@ -7,6 +7,7 @@ import { useChatStore } from "@/lib/store";
 import ReportModal from "@/components/ReportModal";
 import ConfirmModal from "@/components/ConfirmModal";
 import UserProfileModal from "@/components/UserProfileModal";
+import ImageEditor from "@/components/ImageEditor";
 
 type MessageStatus = "sending" | "sent" | "failed";
 
@@ -290,6 +291,7 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
   const [input, setInput] = useState("");
   const [messageImage, setMessageImage] = useState<{ url: string; publicId: string } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [pendingEditFile, setPendingEditFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { startUpload } = useUploadThing("chatFileUploader", {
     onClientUploadComplete: (res) => {
@@ -882,11 +884,13 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
             type="file"
             accept="image/*,video/*,.pdf"
             className="hidden"
-            onChange={async (e) => {
+            onChange={(e) => {
               const file = e.target.files?.[0];
-              if (file) {
+              if (file && file.type.startsWith("image/")) {
+                setPendingEditFile(file);
+              } else if (file) {
                 setIsUploading(true);
-                await startUpload([file]);
+                startUpload([file]);
               }
               e.target.value = "";
             }}
@@ -1078,6 +1082,19 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
         onClose={() => setShowProfileModal(false)}
         chatId={activeChatId || undefined}
       />
+
+      {/* Image Editor Modal */}
+      {pendingEditFile && (
+        <ImageEditor
+          file={pendingEditFile}
+          onComplete={(editedFile) => {
+            setPendingEditFile(null);
+            setIsUploading(true);
+            startUpload([editedFile]);
+          }}
+          onCancel={() => setPendingEditFile(null)}
+        />
+      )}
     </div>
   );
 }
