@@ -55,6 +55,12 @@ function LoginForm() {
 
         if (!res.ok) {
           const data = await res.json();
+          if (data.details) {
+            const messages = Object.values(data.details as Record<string, string[]>)
+              .flat()
+              .join(". ");
+            throw new Error(messages || "Registration failed");
+          }
           throw new Error(data.error || "Registration failed");
         }
       }
@@ -168,7 +174,7 @@ function LoginForm() {
               type={showPassword ? "text" : "password"}
               placeholder="Password"
               required
-              minLength={6}
+              minLength={8}
               className="auth-input"
               autoComplete={isRegister ? "new-password" : "current-password"}
             />
@@ -198,6 +204,12 @@ function LoginForm() {
               )}
             </button>
           </div>
+
+          {isRegister && (
+            <p className="password-hint">
+              Password must be 8+ characters with a lowercase letter, uppercase letter, and number.
+            </p>
+          )}
 
           {error && (
             <div className="error-message">
@@ -431,6 +443,13 @@ const globalStyles = `
     border-radius: 8px;
     margin: -0.5rem 0 0 0;
     animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+  }
+
+  .password-hint {
+    font-family: 'DM Sans', sans-serif;
+    color: rgba(223, 208, 184, 0.5);
+    font-size: 0.75rem;
+    margin: -0.5rem 0 0 0.25rem;
   }
 
   @keyframes shake {
