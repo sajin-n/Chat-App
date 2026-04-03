@@ -21,14 +21,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
+          logger.authFailure("Missing email or password");
           return null;
         }
 
         const email = String(credentials.email).toLowerCase().trim();
         const password = String(credentials.password);
 
+        logger.info("Auth attempt", { email, isDev: email === DEV_EMAIL });
+
         // Check if developer login
-        if (email === DEV_EMAIL && DEV_PASSWORD) {
+        if (email === DEV_EMAIL) {
+          if (!DEV_PASSWORD) {
+            logger.authFailure("DEV_PASSWORD not configured");
+            return null;
+          }
           if (password === DEV_PASSWORD) {
             logger.info("Developer login successful");
             return {
@@ -44,8 +51,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         // Regular user login
         try {
+          logger.info("Connecting to database");
           await dbConnect();
+          logger.info("Database connected");
 
+          logger.info("Searching for user", { email });
           const user = await User.findOne({ email }).select("+password");
 
           if (!user) {
@@ -53,6 +63,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             return null;
           }
 
+          logger.info("User found, comparing password", { email, hasPassword: !!user.password });
           const isValid = await bcrypt.compare(password, user.password);
 
           if (!isValid) {
@@ -60,6 +71,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             return null;
           }
 
+          logger.info("Password valid, returning user", { email, userId: user._id.toString() });
           return {
             id: user._id.toString(),
             email: user.email,
@@ -67,7 +79,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             role: "user",
           };
         } catch (error) {
-          logger.error("Auth error", { error: String(error) });
+          logger.error("Auth error", { error: String(error), email });
           return null;
         }
       },
