@@ -6,6 +6,7 @@ import { useChatStore } from "@/lib/store";
 import ConfirmModal from "@/components/ConfirmModal";
 import { useUploadThing } from "@/lib/uploadthing";
 import UserProfileModal from "@/components/UserProfileModal";
+import ImageEditor from "@/components/ImageEditor";
 
 type MessageStatus = "sending" | "sent" | "failed";
 
@@ -314,6 +315,7 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
   const [messageImage, setMessageImage] = useState<{ url: string; publicId?: string } | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [pendingEditFile, setPendingEditFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const groupContainerRef = useRef<HTMLDivElement>(null);
 
@@ -924,11 +926,13 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
           type="file"
           accept="image/*,video/*,.pdf"
           className="hidden"
-          onChange={async (e) => {
+          onChange={(e) => {
             const file = e.target.files?.[0];
-            if (file) {
+            if (file && file.type.startsWith("image/")) {
+              setPendingEditFile(file);
+            } else if (file) {
               setIsUploading(true);
-              await startUpload([file]);
+              startUpload([file]);
             }
             e.target.value = "";
           }}
@@ -1034,6 +1038,19 @@ export default function GroupChatWindow({ userId }: GroupChatWindowProps) {
         onClose={() => setProfileUserId(null)}
         groupId={activeGroupId || undefined}
       />
+
+      {/* Image Editor Modal */}
+      {pendingEditFile && (
+        <ImageEditor
+          file={pendingEditFile}
+          onComplete={(editedFile) => {
+            setPendingEditFile(null);
+            setIsUploading(true);
+            startUpload([editedFile]);
+          }}
+          onCancel={() => setPendingEditFile(null)}
+        />
+      )}
     </div>
   );
 }

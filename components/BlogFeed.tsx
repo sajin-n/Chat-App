@@ -8,6 +8,7 @@ import ReportModal from "@/components/ReportModal";
 import ConfirmModal from "@/components/ConfirmModal";
 import SharePostModal from "@/components/SharePostModal";
 import UserProfileModal from "@/components/UserProfileModal";
+import ImageEditor from "@/components/ImageEditor";
 import { useChatStore } from "@/lib/store";
 
 interface Blog {
@@ -42,6 +43,7 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
   const [newBlogContent, setNewBlogContent] = useState("");
   const [newBlogImage, setNewBlogImage] = useState<{ url: string; publicId: string } | null>(null);
   const [isBlogUploading, setIsBlogUploading] = useState(false);
+  const [pendingBlogEditFile, setPendingBlogEditFile] = useState<File | null>(null);
   const blogFileInputRef = useRef<HTMLInputElement>(null);
   const { startUpload: startBlogUpload } = useUploadThing("blogImageUploader", {
     onClientUploadComplete: (res) => {
@@ -620,11 +622,10 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
                     type="file"
                     accept="image/*"
                     className="hidden"
-                    onChange={async (e) => {
+                    onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
-                        setIsBlogUploading(true);
-                        await startBlogUpload([file]);
+                        setPendingBlogEditFile(file);
                       }
                       e.target.value = "";
                     }}
@@ -1404,6 +1405,19 @@ export default function BlogFeed({ userId }: BlogFeedProps) {
         userId={profileUserId || ""}
         onClose={() => setProfileUserId(null)}
       />
+
+      {/* Image Editor Modal */}
+      {pendingBlogEditFile && (
+        <ImageEditor
+          file={pendingBlogEditFile}
+          onComplete={(editedFile) => {
+            setPendingBlogEditFile(null);
+            setIsBlogUploading(true);
+            startBlogUpload([editedFile]);
+          }}
+          onCancel={() => setPendingBlogEditFile(null)}
+        />
+      )}
     </div>
   );
 }
