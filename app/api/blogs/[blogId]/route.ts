@@ -5,6 +5,7 @@ import dbConnect from "@/lib/db";
 import { Blog } from "@/lib/models/Blog";
 import { Comment } from "@/lib/models/Comment";
 import { User } from "@/lib/models/User";
+import { Notification } from "@/lib/models/Notification";
 import {
   unauthorizedResponse,
   notFoundResponse,
@@ -95,10 +96,31 @@ export async function PATCH(
         (id) => id.toString() === userId.toString()
       );
 
-      if (likeIndex > -1) {
+      const wasLiked = likeIndex > -1;
+
+      if (wasLiked) {
         blog.likes.splice(likeIndex, 1);
       } else {
         blog.likes.push(userId);
+
+        if (blog.authorId.toString() !== session.user.id) {
+          const liker = await User.findById(session.user.id).select("username profilePicture");
+          
+          await Notification.create({
+            recipientId: blog.authorId.toString(),
+            senderId: session.user.id,
+            type: "like",
+            title: `${liker?.username || "Someone"} liked your post`,
+            message: blog.content?.substring(0, 100) || "Someone liked your post",
+            data: {
+              blogId: blogId,
+            },
+            actionUrl: `/blog/${blogId}`,
+            read: false,
+          });
+
+          logger.info("Like notification created", { blogId, authorId: blog.authorId.toString() });
+        }
       }
 
       await blog.save();
