@@ -12,6 +12,7 @@ import NotificationBell from "@/components/NotificationBell";
 import UserProfile from "@/components/UserProfile";
 import UserProfileModal from "@/components/UserProfileModal";
 import { ErrorBoundary, ChatErrorFallback } from "@/components/ErrorBoundary";
+import ToastPopup from "@/components/ToastPopup";
 
 interface ChatContainerProps {
   userId: string;
@@ -292,6 +293,9 @@ export default function ChatContainer({ userId }: ChatContainerProps) {
         userId={sidebarProfileUserId || ""}
         onClose={() => setSidebarProfileUserId(null)}
       />
+
+      {/* Toast Popup for real-time notifications */}
+      <ToastPopup />
     </div>
   );
 }
