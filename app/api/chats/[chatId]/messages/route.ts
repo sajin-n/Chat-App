@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import { Message } from "@/lib/models/Message";
 import { Chat } from "@/lib/models/Chat";
+import { User } from "@/lib/models/User";
+import { Notification } from "@/lib/models/Notification";
 import { sendMessageSchema, paginationSchema } from "@/lib/validations";
 import { validationErrorResponse, unauthorizedResponse, notFoundResponse, serverErrorResponse, isValidObjectId, badRequestResponse } from "@/lib/api-response";
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
@@ -18,6 +20,7 @@ export async function GET(
       return unauthorizedResponse();
     }
 
+    const userId = session.user.id;
     const { chatId } = await params;
 
     if (!isValidObjectId(chatId)) {
@@ -37,7 +40,7 @@ export async function GET(
 
     const chat = await Chat.findOne({
       _id: chatId,
-      participants: session.user.id,
+      participants: userId,
     });
 
     if (!chat) {
@@ -62,7 +65,7 @@ export async function GET(
     // Mark messages as read for this user
     await Chat.updateOne(
       { _id: chatId },
-      { $set: { [`lastReadBy.${session.user.id}`]: new Date() } }
+      { $set: { [`lastReadBy.${userId}`]: new Date() } }
     );
 
     const hasMore = messages.length > limit;
@@ -95,6 +98,7 @@ export async function POST(
       return unauthorizedResponse();
     }
 
+    const userId = session.user.id;
     const { chatId } = await params;
 
     if (!isValidObjectId(chatId)) {
@@ -114,7 +118,7 @@ export async function POST(
 
     const chat = await Chat.findOne({
       _id: chatId,
-      participants: session.user.id,
+      participants: userId,
     });
 
     if (!chat) {
@@ -123,7 +127,7 @@ export async function POST(
 
     const message = await Message.create({
       chatId,
-      senderId: session.user.id,
+      senderId: userId,
       content: (content || "").trim(),
       clientId,
       ...(imageUrl && { imageUrl }),
@@ -140,6 +144,27 @@ export async function POST(
       lastMessageAt: new Date(),
       updatedAt: new Date(),
     });
+
+    const sender = await User.findById(userId).select("username profilePicture");
+    const recipientIds = chat.participants.filter(
+      (p) => p.toString() !== userId
+    );
+
+    for (const recipientId of recipientIds) {
+      await Notification.create({
+        recipientId: recipientId.toString(),
+        senderId: userId,
+        type: "message",
+        title: `${sender?.username || "Someone"} sent you a message`,
+        message: lastMessageText || "New message",
+        data: {
+          chatId: chatId,
+          messageId: message._id.toString(),
+        },
+        actionUrl: `/chats/${chatId}`,
+        read: false,
+      });
+    }
 
     await message.populate("senderId", "username");
 
