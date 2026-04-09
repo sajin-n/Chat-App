@@ -16,9 +16,12 @@ export function useNotifications() {
     markAllAsRead,
     clearNotifications,
     updateUnreadCount,
+    showToast,
   } = useNotificationStore();
 
   const pollingIntervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const lastFetchedIdsRef = useRef<Set<string>>(new Set());
+  const isInitialFetchRef = useRef(true);
 
   const fetchNotifications = useCallback(async (unreadOnly = false) => {
     if (!session?.user?.id) return;
@@ -35,13 +38,37 @@ export function useNotifications() {
       if (!response.ok) throw new Error("Failed to fetch notifications");
 
       const json = await response.json();
-      setNotifications(json.data.notifications);
+      const newNotifications = json.data.notifications;
+
+      if (isInitialFetchRef.current) {
+        setNotifications(newNotifications);
+        lastFetchedIdsRef.current = new Set(newNotifications.map((n: Notification) => n._id));
+        isInitialFetchRef.current = false;
+      } else {
+        const newIds = newNotifications
+          .filter((n: Notification) => !lastFetchedIdsRef.current.has(n._id))
+          .filter((n: Notification) => !n.read);
+
+        if (newIds.length > 0) {
+          const latestNotification = newIds[0];
+          showToast({
+            id: latestNotification._id,
+            type: latestNotification.type,
+            title: latestNotification.title,
+            message: latestNotification.message,
+            actionUrl: latestNotification.actionUrl,
+          });
+        }
+
+        setNotifications(newNotifications);
+        lastFetchedIdsRef.current = new Set(newNotifications.map((n: Notification) => n._id));
+      }
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
     } finally {
       setLoading(false);
     }
-  }, [session?.user?.id, setNotifications, setLoading]);
+  }, [session?.user?.id, setNotifications, setLoading, showToast]);
 
   const markAsReadHandler = useCallback(
     async (notificationId: string) => {
@@ -132,10 +159,10 @@ export function useNotifications() {
     if (status === "authenticated") {
       fetchNotifications();
 
-      // Poll for new notifications every 30 seconds
+      // Poll for new notifications every 5 seconds
       pollingIntervalRef.current = setInterval(() => {
         fetchNotifications();
-      }, 30000);
+      }, 5000);
 
       return () => {
         if (pollingIntervalRef.current) {

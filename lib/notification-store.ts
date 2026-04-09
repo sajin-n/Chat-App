@@ -21,11 +21,22 @@ export interface Notification {
   updatedAt: Date;
 }
 
+interface ToastNotification {
+  id: string;
+  type: "message" | "comment" | "mention" | "follow" | "like" | "system";
+  title: string;
+  message: string;
+  actionUrl?: string;
+  senderAvatar?: string;
+  senderName?: string;
+}
+
 interface NotificationState {
   notifications: Notification[];
   unreadCount: number;
   loading: boolean;
   showNotificationCenter: boolean;
+  toastNotification: ToastNotification | null;
   
   // Actions
   setNotifications: (notifications: Notification[]) => void;
@@ -37,6 +48,8 @@ interface NotificationState {
   setLoading: (loading: boolean) => void;
   setShowNotificationCenter: (show: boolean) => void;
   updateUnreadCount: (count: number) => void;
+  showToast: (toast: ToastNotification) => void;
+  hideToast: () => void;
 }
 
 export const useNotificationStore = create<NotificationState>((set) => ({
@@ -44,6 +57,7 @@ export const useNotificationStore = create<NotificationState>((set) => ({
   unreadCount: 0,
   loading: false,
   showNotificationCenter: false,
+  toastNotification: null,
 
   setNotifications: (notifications) =>
     set({
@@ -107,4 +121,6 @@ export const useNotificationStore = create<NotificationState>((set) => ({
   setLoading: (loading) => set({ loading }),
   setShowNotificationCenter: (show) => set({ showNotificationCenter: show }),
   updateUnreadCount: (count) => set({ unreadCount: count }),
+  showToast: (toast) => set({ toastNotification: toast }),
+  hideToast: () => set({ toastNotification: null }),
 }));
